@@ -10,6 +10,7 @@ import Test.Tasty.HUnit
 import Dijkstra
 import Lib (read2DDigits)
 import Second (augmentRisks)
+import Amphipods
 
 main :: IO ()
 main = do
@@ -29,6 +30,10 @@ dijkstraTests (case1, case2, case3, case4) =
   , testCase "AOC Day 15 - 2" $ findShortestDistance case2 (0,0) (99,99) @?= Dist 447
   , testCase "AOC Day 15 - 3" $ findShortestDistance case3 (0,0) (49,49) @?= Dist 315
   , testCase "AOC Day 15 - 4" $ findShortestDistance case4 (0,0) (499,499) @?= Dist 2825
+  , testCase "AOC Day 23 - 1" $ newSolveAmph aStateTest2 @?= 12521
+  , testCase "AOC Day 23 - 2" $ newSolveAmph aState1 @?= 10526
+  , testCase "AOC Day 23 - 3" $ newSolveAmph aStateTest3 @?= 44169
+  , testCase "AOC Day 23 - 4" $ newSolveAmph aState2 @?= 41284
   ]
 
 dijkstraInput2D :: Graph2D

@@ -19,10 +19,10 @@ import Data.Maybe (catMaybes)
 import Data.HashSet (HashSet)
 import qualified Data.HashSet as HS
 
--- 4. Add tests for that.
--- 5. Remove necessity to enumerate state space.
 -- 6. Ord instead of Hashable? Benchmark?
 -- 7. Allow both Ord or Hashable?
+-- 8. Allow returning the full path
+-- 9. Debugging
 
 data GraphDist a = Dist a | Infinity
   deriving (Eq, Show)
@@ -44,21 +44,25 @@ rawDist Infinity = maxBound
 class DijkstraGraph g where
   type DijkstraNode g :: *
   type DijkstraDistance g :: *
-  dijkstraNodes :: g -> [DijkstraNode g]
   dijkstraEdges :: g -> DijkstraNode g -> [(DijkstraNode g, (DijkstraDistance g))]
 
 type DijkstraState n d = (HashSet n, MinPrioHeap (GraphDist d) n, HashMap n (GraphDist d))
 
+(!??) :: (Eq a, Hashable a) => HashMap a (GraphDist d) -> a -> (GraphDist d)
+(!??) mp key = case mp HM.!? key of
+  Nothing -> Infinity
+  Just x -> x
+
 findShortestDistance ::
   forall g. (DijkstraGraph g, Eq (DijkstraNode g), Hashable (DijkstraNode g), Num (DijkstraDistance g), Ord (DijkstraDistance g)) =>
   g -> DijkstraNode g -> DijkstraNode g -> GraphDist (DijkstraDistance g)
-findShortestDistance graph src dest = processQueue (HS.empty, initialQueue, dist) HM.! dest
+findShortestDistance graph src dest = processQueue (HS.empty, initialQueue, dist) !?? dest
   where
-    initialDistances = (src, Dist 0) : [(n, Infinity) | n <- dijkstraNodes graph, n /= src]
-    dist = HM.fromList initialDistances
+    dist :: HashMap (DijkstraNode g) (GraphDist (DijkstraDistance g))
+    dist = HM.singleton src (Dist 0)
 
     initialQueue :: MinPrioHeap (GraphDist (DijkstraDistance g)) (DijkstraNode g)
-    initialQueue = H.fromList [(d, node) | (node, d) <- initialDistances]
+    initialQueue = H.fromList [((Dist 0), src)] -- [(d, node) | (node, d) <- initialDistances]
 
     processQueue :: DijkstraState (DijkstraNode g) (DijkstraDistance g) -> HM.HashMap (DijkstraNode g) (GraphDist (DijkstraDistance g))
     processQueue (v0, q0, d0) = case H.view q0 of
@@ -83,8 +87,8 @@ findShortestDistance graph src dest = processQueue (HS.empty, initialQueue, dist
       -> (DijkstraNode g, (DijkstraDistance g))
       -> DijkstraState (DijkstraNode g) (DijkstraDistance g)
     foldNeighbor c1 ds@(v, q, d) (c2, distC1ToC2) =
-      let altDistance = addDist (d HM.! c1) (Dist distC1ToC2)
-      in  if altDistance < d HM.! c2
+      let altDistance = addDist (d !?? c1) (Dist distC1ToC2)
+      in  if altDistance < d !?? c2
             then (v, (H.insert (altDistance, c2) q), (HM.insert c2 altDistance d))
             else ds
 
@@ -96,7 +100,6 @@ newtype Graph = Graph
 instance DijkstraGraph Graph where
   type DijkstraNode Graph = String
   type DijkstraDistance Graph = Int
-  dijkstraNodes (Graph adjList) = HM.keys adjList
   dijkstraEdges (Graph adjList) nodeName = case HM.lookup nodeName adjList of
     Nothing -> []
     Just x -> x
@@ -106,7 +109,6 @@ newtype Graph2D = Graph2D (A.Array (Int, Int) Int)
 instance DijkstraGraph Graph2D where
   type DijkstraNode Graph2D = (Int, Int)
   type DijkstraDistance Graph2D = Int
-  dijkstraNodes (Graph2D arr) = A.indices arr
   dijkstraEdges (Graph2D arr) cell = [(n, arr A.! n) | n <- neighbors]
     where
       neighbors = getNeighbors arr cell

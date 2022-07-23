@@ -1,15 +1,45 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE TypeFamilies #-}
+
 module Amphipods where
 
 import Control.Monad
+import Data.Hashable
 import Data.Maybe (catMaybes)
 import Data.List (sortOn)
 import qualified Data.Heap as H
 import qualified Data.Map as M
 import qualified Data.Set as Set
+import GHC.Generics
+
+import Dijkstra (DijkstraGraph(..), rawDist, findShortestDistance)
+
+-- Amphipod Type
+-- Node
+-- Distance
+-- Edges (what are the moves we can make?)
+
+newtype AmphGraph = AmphGraph ()
+
+instance DijkstraGraph AmphGraph where
+  type DijkstraNode AmphGraph = AmphState
+  type DijkstraDistance AmphGraph = Int
+  dijkstraEdges _ amphState =
+    let moves = possibleMoves amphState
+    in  map (\(d, s, _) -> (s, d)) moves
+
+newSolveAmph :: AmphState -> Int
+newSolveAmph startState = rawDist finalDist
+  where
+    rs = roomSize startState
+    finalState = AmphState (replicate rs Amber) (replicate rs Bronze) (replicate rs Copper) (replicate rs Desert)
+      Nothing Nothing Nothing Nothing Nothing Nothing Nothing rs
+    finalDist = findShortestDistance (AmphGraph ()) startState finalState
 
 solveAmph :: IO ()
 solveAmph = do
-  let (dist, djs, finalState) = dijkstraAmph aState2
+  let (dist, djs, finalState) = dijkstraAmph aStateTest3
   let moves = unwindPath finalState djs
   forM_ moves print
   -- print (H.size $ djQueue djs)
@@ -25,7 +55,7 @@ data Amph =
   Bronze |
   Copper |
   Desert
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic, Hashable)
 
 aState1 :: AmphState
 aState1 = AmphState
@@ -51,6 +81,12 @@ aState2 = AmphState
   Nothing Nothing Nothing Nothing Nothing Nothing Nothing
   4
 
+aStateTest3 :: AmphState
+aStateTest3 = AmphState
+  [Bronze, Desert, Desert, Amber] [Copper, Copper, Bronze, Desert] [Bronze, Bronze, Amber, Copper] [Desert, Amber, Copper, Amber]
+  Nothing Nothing Nothing Nothing Nothing Nothing Nothing
+  4
+
 printAStates :: IO ()
 printAStates = forM_ (possibleMoves aStateTest) print
 
@@ -67,7 +103,7 @@ data AmphState = AmphState
   , hall10 :: Maybe Amph
   , hall11 :: Maybe Amph
   , roomSize :: Int
-  } deriving (Show, Eq, Ord)
+  } deriving (Show, Eq, Ord, Generic, Hashable)
 
 possibleMoves :: AmphState -> [(Int, AmphState, String)]
 possibleMoves aState@(AmphState rA rB rC rD h1 h2 h4 h6 h8 h10 h11 rs) =
@@ -278,7 +314,7 @@ possibleMoves aState@(AmphState rA rB rC rD h1 h2 h4 h6 h8 h10 h11 rs) =
             dTopH10 = if areEmpty [h10]
                        then Just (aTCM aType * (2 + (rs - length rD)), aState { roomD = tail rD, hall10 = Just aType }, "D Room to H10" )
                        else Nothing
-            dTopH11 = if areEmpty [h11]
+            dTopH11 = if areEmpty [h10, h11]
                        then Just (aTCM aType * (3 + (rs - length rD)), aState { roomD = tail rD, hall11 = Just aType }, "D Room to H11" )
                        else Nothing
         in  catMaybes [dTopH1, dTopH2, dTopH4, dTopH6, dTopH8, dTopH10, dTopH11]
