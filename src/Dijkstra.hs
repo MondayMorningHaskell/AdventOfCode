@@ -11,13 +11,13 @@ import Data.Array (Array)
 import qualified Data.Array as A
 import Data.Foldable (foldl')
 import Data.Hashable (Hashable)
-import Data.HashMap.Lazy (HashMap)
-import qualified Data.HashMap.Lazy as HM
+import Data.Map (Map)
+import qualified Data.Map as M
 import Data.Heap (MaxHeap, MinHeap, MaxPrioHeap, MinPrioHeap)
 import qualified Data.Heap as H
 import Data.Maybe (catMaybes)
-import Data.HashSet (HashSet)
-import qualified Data.HashSet as HS
+import Data.Set (Set)
+import qualified Data.Set as S
 
 -- 6. Ord instead of Hashable? Benchmark?
 -- 7. Allow both Ord or Hashable?
@@ -46,37 +46,37 @@ class DijkstraGraph g where
   type DijkstraDistance g :: *
   dijkstraEdges :: g -> DijkstraNode g -> [(DijkstraNode g, (DijkstraDistance g))]
 
-type DijkstraState n d = (HashSet n, MinPrioHeap (GraphDist d) n, HashMap n (GraphDist d))
+type DijkstraState n d = (Set n, MinPrioHeap (GraphDist d) n, Map n (GraphDist d))
 
-(!??) :: (Eq a, Hashable a) => HashMap a (GraphDist d) -> a -> (GraphDist d)
-(!??) mp key = case mp HM.!? key of
+(!??) :: (Eq a, Ord a) => Map a (GraphDist d) -> a -> (GraphDist d)
+(!??) mp key = case mp M.!? key of
   Nothing -> Infinity
   Just x -> x
 
 findShortestDistance ::
-  forall g. (DijkstraGraph g, Eq (DijkstraNode g), Hashable (DijkstraNode g), Num (DijkstraDistance g), Ord (DijkstraDistance g)) =>
+  forall g. (DijkstraGraph g, Eq (DijkstraNode g), Ord (DijkstraNode g), Num (DijkstraDistance g), Ord (DijkstraDistance g)) =>
   g -> DijkstraNode g -> DijkstraNode g -> GraphDist (DijkstraDistance g)
-findShortestDistance graph src dest = processQueue (HS.empty, initialQueue, dist) !?? dest
+findShortestDistance graph src dest = processQueue (S.empty, initialQueue, dist) !?? dest
   where
-    dist :: HashMap (DijkstraNode g) (GraphDist (DijkstraDistance g))
-    dist = HM.singleton src (Dist 0)
+    dist :: Map (DijkstraNode g) (GraphDist (DijkstraDistance g))
+    dist = M.singleton src (Dist 0)
 
     initialQueue :: MinPrioHeap (GraphDist (DijkstraDistance g)) (DijkstraNode g)
     initialQueue = H.fromList [((Dist 0), src)] -- [(d, node) | (node, d) <- initialDistances]
 
-    processQueue :: DijkstraState (DijkstraNode g) (DijkstraDistance g) -> HM.HashMap (DijkstraNode g) (GraphDist (DijkstraDistance g))
+    processQueue :: DijkstraState (DijkstraNode g) (DijkstraDistance g) -> M.Map (DijkstraNode g) (GraphDist (DijkstraDistance g))
     processQueue (v0, q0, d0) = case H.view q0 of
       Nothing -> d0
       -- While heap is not empty
       -- Withdraw minimum distance/index (d, i@(r, c)) from heap
-      Just ((minDist, coord), q1) -> if HS.member coord v0
+      Just ((minDist, coord), q1) -> if S.member coord v0
         then processQueue (v0, q1, d0)
         -- If we have not seen this i already.
         else
-          let v1 = HS.insert coord v0
+          let v1 = S.insert coord v0
               -- Get all unvisited neighbors of i (j)
               allNeighbors = dijkstraEdges graph coord
-              unvisitedNeighbors = filter (\(c, _) -> not (HS.member c v1)) allNeighbors
+              unvisitedNeighbors = filter (\(c, _) -> not (S.member c v1)) allNeighbors
               -- Update their distances to be the minimum of src->i + i->j or existing dist[j]
               -- Place that back in the heap
           in  processQueue $ foldl (foldNeighbor coord) (v1, q1, d0) unvisitedNeighbors
@@ -89,18 +89,18 @@ findShortestDistance graph src dest = processQueue (HS.empty, initialQueue, dist
     foldNeighbor c1 ds@(v, q, d) (c2, distC1ToC2) =
       let altDistance = addDist (d !?? c1) (Dist distC1ToC2)
       in  if altDistance < d !?? c2
-            then (v, (H.insert (altDistance, c2) q), (HM.insert c2 altDistance d))
+            then (v, (H.insert (altDistance, c2) q), (M.insert c2 altDistance d))
             else ds
 
 -- Examples
 newtype Graph = Graph
-  { adjacencyList :: HashMap String [(String, Int)]
+  { adjacencyList :: Map String [(String, Int)]
   }
 
 instance DijkstraGraph Graph where
   type DijkstraNode Graph = String
   type DijkstraDistance Graph = Int
-  dijkstraEdges (Graph adjList) nodeName = case HM.lookup nodeName adjList of
+  dijkstraEdges (Graph adjList) nodeName = case M.lookup nodeName adjList of
     Nothing -> []
     Just x -> x
 

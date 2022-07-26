@@ -2,8 +2,8 @@ module Main where
 
 import Data.Array (Array, listArray)
 import qualified Data.Array as A
-import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
+import Data.Map (Map)
+import qualified Data.Map as M
 import Test.Tasty
 import Test.Tasty.HUnit
 
@@ -46,7 +46,7 @@ dijkstraInput2D = Graph2D $ listArray ((0, 0), (4, 4))
   ]
 
 dijkstraInputGraph :: Graph
-dijkstraInputGraph = Graph $ HM.fromList
+dijkstraInputGraph = Graph $ M.fromList
   [ ("A", [("D", 100), ("B", 1), ("C", 20)])
   , ("B", [("D", 50)])
   , ("C", [("D", 20)])
@@ -54,7 +54,7 @@ dijkstraInputGraph = Graph $ HM.fromList
   ]
 
 dijkstraInputGraph2 :: Graph
-dijkstraInputGraph2 = Graph $ HM.fromList
+dijkstraInputGraph2 = Graph $ M.fromList
   [ ("A", [("D", 100), ("B", 1), ("C", 20)])
   , ("B", [("D", 50), ("E", 30)])
   , ("C", [("D", 20)])
