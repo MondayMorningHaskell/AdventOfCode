@@ -28,6 +28,8 @@ dependencies:
 - mtl
 - split
 - unordered-containers
+- tasty
+- tasty-hunit
 
 library:
   source-dirs: src
@@ -64,5 +66,3 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - AdventOfCode
-      - tasty
-      - tasty-hunit

@@ -1,7 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -15,14 +14,30 @@ import Data.HashMap.Lazy (HashMap)
 import qualified Data.HashMap.Lazy as HM
 import Data.Heap (MaxHeap, MinHeap, MaxPrioHeap, MinPrioHeap)
 import qualified Data.Heap as H
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.HashSet (HashSet)
 import qualified Data.HashSet as HS
 
--- 6. Ord instead of Hashable? Benchmark?
--- 7. Allow both Ord or Hashable?
--- 8. Allow returning the full path
--- 9. Debugging
+-- 1. Make a New Repository
+-- 2. Determine Module Layout
+-- 3. Copy code
+-- 3a. Decide API Questions like Graph Distance
+-- 4. Copy tests
+-- 5. Write documentation (Haddock, Examples)
+-- 6. Handle version constraints
+-- 7. Package candidates
+-- 8. Go through publish process
+
+-- Algorithms.Dijkstra.Graph (re-exported through others)
+--   DijkstraGraph class
+-- Algorithms.Dijkstra
+--   findShortestPath
+--   findShortestPath_
+--   findShortestDistance
+-- Algorithms.Dijkstra.Ord
+--   findShortestPath
+--   findShortestPath_
+--   findShortestDistance
 
 data GraphDist a = Dist a | Infinity
   deriving (Eq, Show)
@@ -44,53 +59,79 @@ rawDist Infinity = maxBound
 class DijkstraGraph g where
   type DijkstraNode g :: *
   type DijkstraDistance g :: *
-  dijkstraEdges :: g -> DijkstraNode g -> [(DijkstraNode g, (DijkstraDistance g))]
+  dijkstraEdges :: g -> DijkstraNode g -> [(DijkstraNode g, DijkstraDistance g)]
 
-type DijkstraState n d = (HashSet n, MinPrioHeap (GraphDist d) n, HashMap n (GraphDist d))
+type DijkstraState n d =
+  ( HashSet n
+  , MinPrioHeap (GraphDist d) (n, n)
+  , HashMap n (GraphDist d)
+  , HashMap n n
+  )
 
-(!??) :: (Eq a, Hashable a) => HashMap a (GraphDist d) -> a -> (GraphDist d)
-(!??) mp key = case mp HM.!? key of
-  Nothing -> Infinity
-  Just x -> x
+(!??) :: (Eq a, Hashable a) => HashMap a (GraphDist d) -> a -> GraphDist d
+(!??) mp key = fromMaybe Infinity (mp HM.!? key)
 
-findShortestDistance ::
+findShortestPath ::
   forall g. (DijkstraGraph g, Eq (DijkstraNode g), Hashable (DijkstraNode g), Num (DijkstraDistance g), Ord (DijkstraDistance g)) =>
-  g -> DijkstraNode g -> DijkstraNode g -> GraphDist (DijkstraDistance g)
-findShortestDistance graph src dest = processQueue (HS.empty, initialQueue, dist) !?? dest
+  g -> DijkstraNode g -> DijkstraNode g -> (GraphDist (DijkstraDistance g), [DijkstraNode g])
+findShortestPath graph src dest = (finalDistanceMap !?? dest, finalValidatedPath)
   where
+    (finalDistanceMap, finalParentMap) = processQueue (HS.empty, initialQueue, dist, HM.empty)
+    finalUnvalidatedPath = unwindPath finalParentMap [dest]
+    finalValidatedPath = if null finalUnvalidatedPath || head finalUnvalidatedPath /= src then []
+      else finalUnvalidatedPath
     dist :: HashMap (DijkstraNode g) (GraphDist (DijkstraDistance g))
     dist = HM.singleton src (Dist 0)
 
-    initialQueue :: MinPrioHeap (GraphDist (DijkstraDistance g)) (DijkstraNode g)
-    initialQueue = H.fromList [((Dist 0), src)] -- [(d, node) | (node, d) <- initialDistances]
+    initialQueue :: MinPrioHeap (GraphDist (DijkstraDistance g)) (DijkstraNode g, DijkstraNode g)
+    initialQueue = H.fromList [(Dist 0, (src, src))] -- [(d, node) | (node, d) <- initialDistances]
 
-    processQueue :: DijkstraState (DijkstraNode g) (DijkstraDistance g) -> HM.HashMap (DijkstraNode g) (GraphDist (DijkstraDistance g))
-    processQueue (v0, q0, d0) = case H.view q0 of
-      Nothing -> d0
+    processQueue :: DijkstraState (DijkstraNode g) (DijkstraDistance g) -> (HM.HashMap (DijkstraNode g) (GraphDist (DijkstraDistance g)), HM.HashMap (DijkstraNode g) (DijkstraNode g))
+    processQueue (v0, q0, d0, p0) = case H.view q0 of
+      Nothing -> (d0, p0)
       -- While heap is not empty
       -- Withdraw minimum distance/index (d, i@(r, c)) from heap
-      Just ((minDist, coord), q1) -> if HS.member coord v0
-        then processQueue (v0, q1, d0)
+      Just ((minDist, (coord, parent)), q1) -> if HS.member coord v0
+        then processQueue (v0, q1, d0, p0)
         -- If we have not seen this i already.
         else
           let v1 = HS.insert coord v0
+              -- Insert parent
+              p1 = HM.insert coord parent p0
               -- Get all unvisited neighbors of i (j)
               allNeighbors = dijkstraEdges graph coord
               unvisitedNeighbors = filter (\(c, _) -> not (HS.member c v1)) allNeighbors
               -- Update their distances to be the minimum of src->i + i->j or existing dist[j]
               -- Place that back in the heap
-          in  processQueue $ foldl (foldNeighbor coord) (v1, q1, d0) unvisitedNeighbors
+          in  processQueue $ foldl (foldNeighbor coord) (v1, q1, d0, p1) unvisitedNeighbors
 
     foldNeighbor ::
          DijkstraNode g
       -> DijkstraState (DijkstraNode g) (DijkstraDistance g)
-      -> (DijkstraNode g, (DijkstraDistance g))
+      -> (DijkstraNode g, DijkstraDistance g)
       -> DijkstraState (DijkstraNode g) (DijkstraDistance g)
-    foldNeighbor c1 ds@(v, q, d) (c2, distC1ToC2) =
+    foldNeighbor c1 ds@(v, q, d, p) (c2, distC1ToC2) =
       let altDistance = addDist (d !?? c1) (Dist distC1ToC2)
       in  if altDistance < d !?? c2
-            then (v, (H.insert (altDistance, c2) q), (HM.insert c2 altDistance d))
+            then (v, H.insert (altDistance, (c2, c1)) q, HM.insert c2 altDistance d, p)
             else ds
+
+    unwindPath :: HashMap (DijkstraNode g) (DijkstraNode g) -> [DijkstraNode g] -> [DijkstraNode g]
+    unwindPath parentMap [] = [] -- Shouldn't happen
+    unwindPath parentMap accum@(current : _) = case HM.lookup current parentMap of
+      Nothing -> accum
+      Just node -> if node == current then accum
+        else unwindPath parentMap (node : accum)
+
+findShortestPath_ ::
+  forall g. (DijkstraGraph g, Eq (DijkstraNode g), Hashable (DijkstraNode g), Num (DijkstraDistance g), Ord (DijkstraDistance g)) =>
+  g -> DijkstraNode g -> DijkstraNode g -> [DijkstraNode g]
+findShortestPath_ graph src dest = snd (findShortestPath graph src dest)
+
+findShortestDistance ::
+  forall g. (DijkstraGraph g, Eq (DijkstraNode g), Hashable (DijkstraNode g), Num (DijkstraDistance g), Ord (DijkstraDistance g)) =>
+  g -> DijkstraNode g -> DijkstraNode g -> GraphDist (DijkstraDistance g)
+findShortestDistance graph src dest = fst (findShortestPath graph src dest)
 
 -- Examples
 newtype Graph = Graph
@@ -100,9 +141,7 @@ newtype Graph = Graph
 instance DijkstraGraph Graph where
   type DijkstraNode Graph = String
   type DijkstraDistance Graph = Int
-  dijkstraEdges (Graph adjList) nodeName = case HM.lookup nodeName adjList of
-    Nothing -> []
-    Just x -> x
+  dijkstraEdges (Graph adjList) nodeName = fromMaybe [] (HM.lookup nodeName adjList)
 
 newtype Graph2D = Graph2D (A.Array (Int, Int) Int)
 
