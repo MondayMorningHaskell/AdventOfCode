@@ -25,6 +25,7 @@ dependencies:
 - containers
 - hashable
 - heap
+- megaparsec
 - mtl
 - split
 - unordered-containers
@@ -58,6 +59,17 @@ tests:
 
   dijkstra-test:
     main: DijkstraTest.hs
+    other-modules: []
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - AdventOfCode
+
+  aoc-test:
+    main: AocTests.hs
     other-modules: []
     source-dirs: test
     ghc-options:
