@@ -30,10 +30,12 @@ library
       Cucumbers
       Day1
       Day2
+      Day3
       Dijkstra
       Lib
       Monad
       Second
+      Template
       Third
       Utils
   other-modules:
@@ -51,6 +53,7 @@ library
     , split
     , tasty
     , tasty-hunit
+    , text
     , unordered-containers
   default-language: Haskell2010
 
@@ -73,6 +76,7 @@ executable aoc
     , split
     , tasty
     , tasty-hunit
+    , text
     , unordered-containers
   default-language: Haskell2010
 
@@ -98,6 +102,7 @@ test-suite AdventOfCode-test
     , split
     , tasty
     , tasty-hunit
+    , text
     , unordered-containers
   default-language: Haskell2010
 
@@ -119,6 +124,7 @@ test-suite aoc-test
     , split
     , tasty
     , tasty-hunit
+    , text
     , unordered-containers
   default-language: Haskell2010
 
@@ -140,5 +146,6 @@ test-suite dijkstra-test
     , split
     , tasty
     , tasty-hunit
+    , text
     , unordered-containers
   default-language: Haskell2010

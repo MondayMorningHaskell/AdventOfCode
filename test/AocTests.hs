@@ -5,6 +5,7 @@ import Test.Tasty.HUnit ( testCase, (@?=) )
 
 import Day1 (solveDay1Easy, solveDay1Hard)
 import Day2 (solveDay2Easy, solveDay2Hard)
+import Day3 (solveDay3Easy, solveDay3Hard)
 
 main :: IO ()
 main = do
@@ -16,6 +17,10 @@ main = do
   day22 <- solveDay2Easy "inputs/day_2_big.txt"
   day23 <- solveDay2Hard "inputs/day_2_small.txt"
   day24 <- solveDay2Hard "inputs/day_2_big.txt"
+  day31 <- solveDay3Easy "inputs/day_3_small.txt"
+  day32 <- solveDay3Easy "inputs/day_3_big.txt"
+  day33 <- solveDay3Hard "inputs/day_3_small.txt"
+  day34 <- solveDay3Hard "inputs/day_3_big.txt"
   defaultMain $ testGroup "Advent of Code Tests"
     [ testCase "Day 1-1" $ day11 @?= 7
     , testCase "Day 1-2" $ day12 @?= 1226
@@ -25,4 +30,8 @@ main = do
     , testCase "Day 2-2" $ day22 @?= 1524750
     , testCase "Day 2-3" $ day23 @?= 900
     , testCase "Day 2-4" $ day24 @?= 1592426537
+    , testCase "Day 3-1" $ day31 @?= 198
+    , testCase "Day 3-2" $ day32 @?= 3847100
+    , testCase "Day 3-3" $ day33 @?= 230
+    , testCase "Day 3-4" $ day34 @?= 16420940 -- Should this be 4105235?
     ]
