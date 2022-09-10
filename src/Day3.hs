@@ -85,7 +85,6 @@ filterByBitFrequency _ [] = return []
 filterByBitFrequency _ [final] = return [final]
 filterByBitFrequency shouldMatchMostCommon inputs = do
   let results = filter filterFunc inputs
-  liftIO $ print (numberOf1s, numberOf0s, shouldMatchMostCommon)
   return $ map tail' results
   where
     tail' (i, s) = (i, tail s)

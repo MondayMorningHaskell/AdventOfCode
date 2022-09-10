@@ -35,6 +35,10 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+    - extra
+    - monad-logger
+    - search-algorithms
 
 executables:
   aoc:

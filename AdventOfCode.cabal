@@ -31,6 +31,7 @@ library
       Day1
       Day2
       Day3
+      Day4
       Dijkstra
       Lib
       Monad
@@ -46,10 +47,13 @@ library
       array
     , base >=4.7 && <5
     , containers
+    , extra
     , hashable
     , heap
     , megaparsec
+    , monad-logger
     , mtl
+    , search-algorithms
     , split
     , tasty
     , tasty-hunit
