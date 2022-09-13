@@ -9,6 +9,7 @@ import Day3 (solveDay3Easy, solveDay3Hard)
 import Day4 (solveDay4Easy, solveDay4Hard)
 import Day5 (solveDay5Easy, solveDay5Hard)
 import Day6 (solveDay6Easy, solveDay6Hard)
+import Day7 (solveDay7Easy, solveDay7Hard)
 
 main :: IO ()
 main = do
@@ -36,6 +37,10 @@ main = do
   day62 <- solveDay6Easy "inputs/day_6_big.txt"
   day63 <- solveDay6Hard "inputs/day_6_small.txt"
   day64 <- solveDay6Hard "inputs/day_6_big.txt"
+  day71 <- solveDay7Easy "inputs/day_7_small.txt"
+  day72 <- solveDay7Easy "inputs/day_7_big.txt"
+  day73 <- solveDay7Hard "inputs/day_7_small.txt"
+  day74 <- solveDay7Hard "inputs/day_7_big.txt"
   defaultMain $ testGroup "Advent of Code Tests"
     [ testCase "Day 1-1" $ day11 @?= 7
     , testCase "Day 1-2" $ day12 @?= 1226
@@ -61,4 +66,8 @@ main = do
     , testCase "Day 6-2" $ day62 @?= Just 375482
     , testCase "Day 6-4" $ day63 @?= Just 26984457539
     , testCase "Day 6-4" $ day64 @?= Just 1689540415957
+    , testCase "Day 7-1" $ day71 @?= Just 37
+    , testCase "Day 7-2" $ day72 @?= Just 344735
+    , testCase "Day 7-4" $ day73 @?= Just 168
+    , testCase "Day 7-4" $ day74 @?= Just 96798233
     ]
