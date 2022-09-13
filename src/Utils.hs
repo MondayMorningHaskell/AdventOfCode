@@ -35,7 +35,15 @@ parseLinesFromFile parser filepath = do
   input <- pack <$> liftIO (readFile filepath)
   result <- runParserT (sepEndBy1 parser eol) "Utils.hs" input
   case result of
-    Left e -> error $ "Failed to parse day 4: " ++ show e
+    Left e -> error $ "Failed to parse: " ++ show e
+    Right x -> return x
+
+parseFile :: (MonadIO m) => ParsecT Void Text m a -> FilePath -> m a
+parseFile parser filepath = do
+  input <- pack <$> liftIO (readFile filepath)
+  result <- runParserT parser "Utils.hs" input
+  case result of
+    Left e -> error $ "Failed to parse: " ++ show e
     Right x -> return x
 
 {- Parsers -}
@@ -61,7 +69,7 @@ parsePositiveNumber :: (Monad m) => ParsecT Void Text m Int
 parsePositiveNumber = read <$> some digitChar
 
 -- Positive numbers only
-parseCSVInts :: Parsec Void Text [Int]
+parseCSVInts :: (Monad m) => ParsecT Void Text m [Int]
 parseCSVInts = sepBy parsePositiveNumber (char ',')
 
 parseSpacedInts :: (Monad m) => ParsecT Void Text m [Int]
