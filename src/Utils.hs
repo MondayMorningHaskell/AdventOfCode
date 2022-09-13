@@ -9,10 +9,15 @@ import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import Data.Text (Text, pack)
 import Data.Void (Void)
-import Text.Megaparsec ( some, Parsec, sepBy, runParser, ParsecT, runParserT, someTill, MonadParsec (eof, try), sepEndBy1, sepBy1, (<|>) )
+import Text.Megaparsec ( some, Parsec, sepBy, runParser, ParsecT, runParserT, someTill, MonadParsec (eof, try), sepEndBy1, sepBy1, (<|>), many )
 import Text.Megaparsec.Char ( digitChar, char, hspace, eol, hspace1 )
 import Control.Monad.Logger (MonadLogger, logDebugN)
 import Data.Functor (($>))
+import Control.Monad.IO.Class (MonadIO, liftIO)
+
+-- Helpful Types
+type Coord2 = (Int, Int)
+type Coord2f = (Double, Double)
 
 -- Reading From Files
 readIntsFromFile :: FilePath -> IO [Int]
@@ -24,6 +29,14 @@ readStringsFromFile = readLinesFromFile id
 readLinesFromFile :: (String -> a) -> FilePath -> IO [a]
 readLinesFromFile lineParseFunction filepath =
     map lineParseFunction . lines <$> readFile filepath
+
+parseLinesFromFile :: (MonadIO m) => ParsecT Void Text m a -> FilePath -> m [a]
+parseLinesFromFile parser filepath = do
+  input <- pack <$> liftIO (readFile filepath)
+  result <- runParserT (sepEndBy1 parser eol) "Utils.hs" input
+  case result of
+    Left e -> error $ "Failed to parse day 4: " ++ show e
+    Right x -> return x
 
 {- Parsers -}
 rpd :: Show a => Parsec Void Text a -> String -> IO ()
@@ -87,6 +100,8 @@ countWhere predicate list = length $ filter predicate list
 
 -- Common Structures
 type OccMap a = Map a Word
+
+emptyOcc = M.empty
 
 incKey :: (Ord a) => OccMap a -> a -> OccMap a
 incKey prevMap key = case M.lookup key prevMap of
