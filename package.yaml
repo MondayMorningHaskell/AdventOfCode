@@ -32,6 +32,7 @@ dependencies:
 - tasty
 - tasty-hunit
 - text
+- transformers
 
 library:
   source-dirs: src
