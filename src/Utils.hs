@@ -3,8 +3,12 @@
 
 module Utils where
 
+import Data.Array (Array)
+import qualified Data.Array as A
+import Data.Char (digitToInt)
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Maybe (catMaybes)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import Data.Text (Text, pack)
@@ -18,6 +22,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 -- Helpful Types
 type Coord2 = (Int, Int)
 type Coord2f = (Double, Double)
+type Grid2 a = Array Coord2 a
 
 -- Reading From Files
 readIntsFromFile :: FilePath -> IO [Int]
@@ -102,6 +107,16 @@ parseNumbers = parseNumbersTail []
       newLine <- parseSpacedInts <* eol
       parseNumbersTail (newLine : prev) (rowsRemaining - 1)
 
+-- Only single digit numbers
+parse2DDigitArray :: (Monad m) => ParsecT Void Text m (Grid2 Int)
+parse2DDigitArray = digitsToArray <$> sepEndBy1 parseDigitLine eol
+  where
+    parseDigitLine :: ParsecT Void Text m [Int]
+    parseDigitLine = fmap digitToInt <$> some digitChar
+
+    digitsToArray :: [[Int]] -> Grid2 Int
+    digitsToArray inputs = A.listArray ((0, 0), (length inputs - 1, length (head inputs) - 1)) (concat inputs)
+
 -- Solution Patterns
 countWhere :: (a -> Bool) -> [a] -> Int
 countWhere predicate list = length $ filter predicate list
@@ -130,3 +145,19 @@ binaryStringToDecimal input = sum $ zipWith f input powers
     f :: Char -> Int -> Int
     f '1' power = power
     f _ _ = 0
+
+-- 2D Grid Helpers
+getNeighbors :: Grid2 a -> Coord2 -> [Coord2]
+getNeighbors grid (row, col) = catMaybes [maybeUp, maybeDown, maybeLeft, maybeRight]
+  where
+    (maxRow, maxCol) = snd . A.bounds $ grid
+    maybeUp = if row > 0 then Just (row - 1, col) else Nothing
+    maybeDown = if row < maxRow then Just (row + 1, col) else Nothing
+    maybeLeft = if col > 0 then Just (row, col - 1) else Nothing
+    maybeRight = if col < maxCol then Just (row, col + 1) else Nothing
+
+getNeighborsAssoc :: Grid2 a -> Coord2 -> [(Coord2, a)]
+getNeighborsAssoc grid coord = getAssocs grid (getNeighbors grid coord)
+
+getAssocs :: Grid2 a -> [Coord2] -> [(Coord2, a)]
+getAssocs grid = map (\c -> (c, grid A.! c))
