@@ -84,13 +84,12 @@ parse2DMapSpaceMany :: (Monad m) => Int -> ParsecT Void Text m [HashMap (Int, In
 parse2DMapSpaceMany rowsPerMap = some (parse2DMapSpace rowsPerMap)
 
 parse2DMapSpace :: (Monad m) => Int -> ParsecT Void Text m (HashMap (Int, Int) Int)
-parse2DMapSpace rowsPerMap = createMap <$> (eol >> parseNumbers rowsPerMap)
-  where
+parse2DMapSpace rowsPerMap = hashMapFromNestedLists <$> (eol >> parseNumbers rowsPerMap)
 
-    createMap :: [[Int]] -> HashMap (Int, Int) Int
-    createMap inputs =
-      let x = zip [0,1..] (map (zip [0,1..]) inputs)
-      in  foldl f HM.empty x
+hashMapFromNestedLists :: [[Int]] -> HashMap (Int, Int) Int
+hashMapFromNestedLists inputs = foldl f HM.empty x
+  where
+    x = zip [0,1..] (map (zip [0,1..]) inputs)
     
     f :: HashMap (Int, Int) Int -> (Int, [(Int, Int)]) -> HashMap (Int, Int) Int
     f prevMap (row, pairs) = foldl (g row) prevMap pairs
@@ -110,12 +109,15 @@ parseNumbers = parseNumbersTail []
 -- Only single digit numbers
 parse2DDigitArray :: (Monad m) => ParsecT Void Text m (Grid2 Int)
 parse2DDigitArray = digitsToArray <$> sepEndBy1 parseDigitLine eol
-  where
-    parseDigitLine :: ParsecT Void Text m [Int]
-    parseDigitLine = fmap digitToInt <$> some digitChar
 
-    digitsToArray :: [[Int]] -> Grid2 Int
-    digitsToArray inputs = A.listArray ((0, 0), (length inputs - 1, length (head inputs) - 1)) (concat inputs)
+parse2DDigitHashMap :: (Monad m) => ParsecT Void Text m (HashMap Coord2 Int)
+parse2DDigitHashMap = hashMapFromNestedLists <$> sepEndBy1 parseDigitLine eol
+
+parseDigitLine :: ParsecT Void Text m [Int]
+parseDigitLine = fmap digitToInt <$> some digitChar
+
+digitsToArray :: [[Int]] -> Grid2 Int
+digitsToArray inputs = A.listArray ((0, 0), (length inputs - 1, length (head inputs) - 1)) (concat inputs)
 
 -- Solution Patterns
 countWhere :: (a -> Bool) -> [a] -> Int
@@ -147,6 +149,7 @@ binaryStringToDecimal input = sum $ zipWith f input powers
     f _ _ = 0
 
 -- 2D Grid Helpers
+-- TODO: Should also do for Hash Map
 getNeighbors :: Grid2 a -> Coord2 -> [Coord2]
 getNeighbors grid (row, col) = catMaybes [maybeUp, maybeDown, maybeLeft, maybeRight]
   where
@@ -161,3 +164,18 @@ getNeighborsAssoc grid coord = getAssocs grid (getNeighbors grid coord)
 
 getAssocs :: Grid2 a -> [Coord2] -> [(Coord2, a)]
 getAssocs grid = map (\c -> (c, grid A.! c))
+
+-- TODO: Should also do for Array
+getNeighbors8 :: HashMap Coord2 a -> Coord2 -> [Coord2]
+getNeighbors8 grid (row, col) = catMaybes
+  [maybeUp, maybeUpRight, maybeRight, maybeDownRight, maybeDown, maybeDownLeft, maybeLeft, maybeUpLeft]
+  where
+    (maxRow, maxCol) = maximum $ HM.keys grid
+    maybeUp = if row > 0 then Just (row - 1, col) else Nothing
+    maybeUpRight = if row > 0 && col < maxCol then Just (row - 1, col + 1) else Nothing
+    maybeRight = if col < maxCol then Just (row, col + 1) else Nothing
+    maybeDownRight = if row < maxRow && col < maxCol then Just (row + 1, col + 1) else Nothing
+    maybeDown = if row < maxRow then Just (row + 1, col) else Nothing
+    maybeDownLeft = if row < maxRow && col > 0 then Just (row + 1, col - 1) else Nothing
+    maybeLeft = if col > 0 then Just (row, col - 1) else Nothing
+    maybeUpLeft = if row > 0 && col > 0 then Just (row - 1, col - 1) else Nothing

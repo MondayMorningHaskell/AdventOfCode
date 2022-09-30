@@ -4,6 +4,7 @@ module Day4 where
 
 import Control.Monad (forM_, when)
 import Control.Monad.Logger
+    ( logErrorN, runStdoutLoggingT, MonadLogger, logDebugN )
 import qualified Data.Map as M
 import Data.HashSet (HashSet)
 import qualified Data.HashSet as HS
