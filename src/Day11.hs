@@ -32,14 +32,14 @@ d11HB = solveDay11Hard "inputs/day_11_big.txt"
 
 solveDay11Easy :: String -> IO (Maybe Int)
 solveDay11Easy fp = do
-  initialState <- parseFile parse2DDigitHashMap fp
-  (_, numFlashes) <- runStdoutLoggingT $ runStepCount 100 (initialState, 0)
+  initialGrid <- parseFile parse2DDigitHashMap fp
+  (_, numFlashes) <- runStdoutLoggingT $ runStepCount 100 (initialGrid, 0)
   return $ Just numFlashes
 
 solveDay11Hard :: String -> IO (Maybe Int)
 solveDay11Hard fp = do
-  initialState <- parseFile parse2DDigitHashMap fp
-  firstAllFlash <- runStdoutLoggingT $ runTillAllFlash initialState 1
+  initialGrid <- parseFile parse2DDigitHashMap fp
+  firstAllFlash <- runStdoutLoggingT $ runTillAllFlash initialGrid 1
   return $ Just firstAllFlash
 
 type OGrid = HashMap Coord2 Int
@@ -49,18 +49,6 @@ runStepCount 0 results = return results
 runStepCount i (grid, prevFlashes) = do
   (newGrid, flashCount, _) <- runStep grid
   runStepCount (i - 1) (newGrid, flashCount + prevFlashes)
-
-logMap :: (MonadLogger m) => OGrid -> m ()
-logMap grid = do
-  logDebugN "Start Grid"
-  forM_ groupedEntries $ \row -> do
-    let asT = fmap (pack . show) (snd <$> row)
-    logDebugN (Data.Text.concat asT)
-  logDebugN "End Grid"
-  logDebugN ""
-  where
-    sortedEntries = sort $ HM.toList grid
-    groupedEntries = groupOn (fst . fst) sortedEntries
 
 runTillAllFlash :: (MonadLogger m) => OGrid -> Int -> m Int
 runTillAllFlash inputGrid thisStep = do
@@ -76,7 +64,6 @@ runStep inputGrid = do
   let finalGrid = foldl (\g c -> HM.insert c 0 g) newGrid allFlashes
   return (finalGrid, numFlashes, numFlashes == HM.size inputGrid)
   where
-  -- Start by incrementing everything
     incrementedGrid = (+1) <$> inputGrid
     initialFlashes = fst <$> filter (\(_, x) -> x >= 10) (HM.toList incrementedGrid)
 
@@ -85,7 +72,7 @@ processFlashes visited queue grid = case Seq.viewl queue of
   Seq.EmptyL -> return (visited, grid)
   top Seq.:< rest -> do
     let allNeighbors = getNeighbors8 grid top
-        newGrid = foldl (\g c -> HM.insert c ((g HM.! c) + 1) g) grid allNeighbors
+        newGrid = foldl (\g c -> HM.insert c (g HM.! c + 1) g) grid allNeighbors
         neighborsToAdd = filter shouldAdd allNeighbors
         newVisited = foldl (flip HS.insert) visited neighborsToAdd
         newQueue = foldl (Seq.|>) rest neighborsToAdd
@@ -93,54 +80,15 @@ processFlashes visited queue grid = case Seq.viewl queue of
   where
     shouldAdd :: Coord2 -> Bool
     shouldAdd coord = grid HM.! coord >= 9 && not (HS.member coord visited)
-    
-  -- 
 
-
-{-
-runStep :: OctoArray -> (Int, OctoArray, Bool)
-runStep oArray = (length allFlashes, finalArray, allFlashed)
+logMap :: (MonadLogger m) => OGrid -> m ()
+logMap grid = do
+  logDebugN "Start Grid"
+  forM_ groupedEntries $ \row -> do
+    let asT = fmap (pack . show) (snd <$> row)
+    logDebugN (Data.Text.concat asT)
+  logDebugN "End Grid"
+  logDebugN ""
   where
-    incrementedArray = A.listArray (A.bounds oArray)
-      (map (+ 1) (A.elems oArray))
-    initialFlashes = fst <$>
-      filter (\(coord, x) -> x >= 10) (A.assocs incrementedArray)
-    initialOes = OctoEnergyState
-      (Set.fromList initialFlashes) (Seq.fromList initialFlashes)
-    processedFlashes = evalState (processFlashes incrementedArray) initialOes
-    allFlashes = filter (\(coord, x) -> x >= 10) (A.assocs processedFlashes)
-    finalModifications = map (\(coord, _) -> (coord, 0)) allFlashes
-    finalArray = processedFlashes A.// finalModifications
-    allFlashed = length allFlashes == length (A.elems oArray)
-
-data OctoEnergyState = OctoEnergyState
-  { oesVisited :: Set.Set Coord
-  , oesQueue :: Seq.Seq Coord
-  } deriving (Show)
-
-processFlashes :: OctoArray -> State OctoEnergyState OctoArray
-processFlashes prevArray = do
-  (OctoEnergyState v q) <- get
-  -- If queue is empty, we have processed everything, return this array
-  case Seq.viewl q of
-    Seq.EmptyL -> return prevArray
-    (firstLoc Seq.:< restQ) -> do
-      let allNeighbors = getAllNeighbors (snd $ A.bounds prevArray) firstLoc
-      let cellsToAdd = filter
-                        (shouldAddToQueue v)
-                        allNeighbors
-      -- Create Modified Array
-      let modifications = map (\c -> (c, (prevArray A.! c) + 1)) allNeighbors
-      let newArray = prevArray A.// modifications
-      -- Modify the Visited Set
-      let newVisited = foldl (\st n -> Set.insert n st) v cellsToAdd
-      -- Modify the Queue
-      let newQueue = foldl (\queue n -> queue Seq.|> n) restQ cellsToAdd
-      put $ OctoEnergyState newVisited newQueue
-      processFlashes newArray
-  where
-    shouldAddToQueue :: Set.Set Coord -> Coord -> Bool
-    shouldAddToQueue visited c = not (Set.member c visited) &&
-        prevArray A.! c >= 9
-
--}
+    sortedEntries = sort $ HM.toList grid
+    groupedEntries = groupOn (fst . fst) sortedEntries

@@ -8,7 +8,7 @@ import qualified Data.Array as A
 import Data.Char (digitToInt)
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, fromMaybe)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
 import Data.Text (Text, pack)
@@ -86,17 +86,6 @@ parse2DMapSpaceMany rowsPerMap = some (parse2DMapSpace rowsPerMap)
 parse2DMapSpace :: (Monad m) => Int -> ParsecT Void Text m (HashMap (Int, Int) Int)
 parse2DMapSpace rowsPerMap = hashMapFromNestedLists <$> (eol >> parseNumbers rowsPerMap)
 
-hashMapFromNestedLists :: [[Int]] -> HashMap (Int, Int) Int
-hashMapFromNestedLists inputs = foldl f HM.empty x
-  where
-    x = zip [0,1..] (map (zip [0,1..]) inputs)
-    
-    f :: HashMap (Int, Int) Int -> (Int, [(Int, Int)]) -> HashMap (Int, Int) Int
-    f prevMap (row, pairs) = foldl (g row) prevMap pairs
-
-    g :: Int -> HashMap (Int, Int) Int -> (Int, Int) -> HashMap (Int, Int) Int
-    g row prevMap (col, val) = HM.insert (row, col) val prevMap
-
 parseNumbers :: forall m. (Monad m) => Int -> ParsecT Void Text m [[Int]]
 parseNumbers = parseNumbersTail []
   where
@@ -110,33 +99,58 @@ parseNumbers = parseNumbersTail []
 parse2DDigitArray :: (Monad m) => ParsecT Void Text m (Grid2 Int)
 parse2DDigitArray = digitsToArray <$> sepEndBy1 parseDigitLine eol
 
-parse2DDigitHashMap :: (Monad m) => ParsecT Void Text m (HashMap Coord2 Int)
-parse2DDigitHashMap = hashMapFromNestedLists <$> sepEndBy1 parseDigitLine eol
+digitsToArray :: [[Int]] -> Grid2 Int
+digitsToArray inputs = A.listArray ((0, 0), (length inputs - 1, length (head inputs) - 1)) (concat inputs)
 
 parseDigitLine :: ParsecT Void Text m [Int]
 parseDigitLine = fmap digitToInt <$> some digitChar
 
-digitsToArray :: [[Int]] -> Grid2 Int
-digitsToArray inputs = A.listArray ((0, 0), (length inputs - 1, length (head inputs) - 1)) (concat inputs)
+hashMapFromNestedLists :: [[Int]] -> HashMap Coord2 Int
+hashMapFromNestedLists inputs = foldl f HM.empty x
+  where
+    x :: [(Int, [(Int, Int)])]
+    x = zip [0,1..] (map (zip [0,1..]) inputs)
+
+    f :: HashMap Coord2 Int -> (Int, [(Int, Int)]) -> HashMap Coord2 Int
+    f prevMap (row, pairs) = foldl (g row) prevMap pairs
+
+    g :: Int -> HashMap Coord2 Int -> Coord2 -> HashMap Coord2 Int
+    g row prevMap (col, val) = HM.insert (row, col) val prevMap
+
+
+parse2DDigits :: (Monad m) => ParsecT Void Text m [[Int]]
+parse2DDigits = sepEndBy1 parseDigitLine eol
+
+parse2DDigitHashMap :: (Monad m) => ParsecT Void Text m (HashMap Coord2 Int)
+parse2DDigitHashMap = hashMapFromNestedLists <$> parse2DDigits
 
 -- Solution Patterns
 countWhere :: (a -> Bool) -> [a] -> Int
 countWhere predicate list = length $ filter predicate list
 
 -- Common Structures
-type OccMap a = Map a Word
+type OccMap a = OccMapI a Word
+type OccMapBig a = OccMapI a Integer
+type OccMapI a i = Map a i
 
+emptyOcc :: OccMap a
 emptyOcc = M.empty
 
-incKey :: (Ord a) => OccMap a -> a -> OccMap a
-incKey prevMap key = case M.lookup key prevMap of
-    Nothing -> M.insert key 1 prevMap
-    Just x -> M.insert key (x + 1) prevMap
+incKey :: (Ord a, Integral i) => OccMapI a i -> a -> OccMapI a i
+incKey prevMap key = addKey prevMap key 1
 
-incKeyWithOcc :: (Ord a) => OccMap a -> a -> (OccMap a, Word)
+addKey :: (Ord a, Integral i) => OccMapI a i -> a -> i -> OccMapI a i
+addKey prevMap key count = case M.lookup key prevMap of
+    Nothing -> M.insert key count prevMap
+    Just x -> M.insert key (x + count) prevMap
+
+incKeyWithOcc :: (Ord a, Integral i) => OccMapI a i -> a -> (OccMapI a i, i)
 incKeyWithOcc prevMap key = case M.lookup key prevMap of
     Nothing -> (M.insert key 1 prevMap, 1)
     Just x -> (M.insert key (x + 1) prevMap, x + 1)
+
+occLookup :: (Ord a) => OccMap a -> a -> Word
+occLookup prevMap key = fromMaybe 0 (M.lookup key prevMap)
 
 -- Binary Numbers
 binaryStringToDecimal :: String -> Int
