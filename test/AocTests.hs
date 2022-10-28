@@ -14,6 +14,9 @@ import Day8 (solveDay8Easy, solveDay8Hard)
 import Day9 (solveDay9Easy, solveDay9Hard)
 import Day10 (solveDay10Easy, solveDay10Hard)
 import Day11 (solveDay11Easy, solveDay11Hard)
+import Day12 (solveDay12Easy, solveDay12Hard)
+import Day14 (solveDay14Easy, solveDay14Hard)
+import Day16 (solveDay16Easy, solveDay16Hard)
 
 main :: IO ()
 main = do
@@ -61,6 +64,18 @@ main = do
   day112 <- solveDay11Easy "inputs/day_11_big.txt"
   day113 <- solveDay11Hard "inputs/day_11_small.txt"
   day114 <- solveDay11Hard "inputs/day_11_big.txt"
+  -- day121 <- solveDay12Easy "inputs/day_12_small.txt"
+  -- day122 <- solveDay12Easy "inputs/day_12_big.txt"
+  -- day123 <- solveDay12Hard "inputs/day_12_small.txt"
+  -- day124 <- solveDay12Hard "inputs/day_12_big.txt"
+  day141 <- solveDay14Easy "inputs/day_14_small.txt"
+  day142 <- solveDay14Easy "inputs/day_14_big.txt"
+  day143 <- solveDay14Hard "inputs/day_14_small.txt"
+  day144 <- solveDay14Hard "inputs/day_14_big.txt"
+  day161 <- solveDay16Easy "inputs/day_16_small.txt"
+  day162 <- solveDay16Easy "inputs/day_16_big.txt"
+  day163 <- solveDay16Hard "inputs/day_16_small.txt"
+  day164 <- solveDay16Hard "inputs/day_16_big.txt"
   defaultMain $ testGroup "Advent of Code Tests"
     [ testCase "Day 1-1" $ day11 @?= 7
     , testCase "Day 1-2" $ day12 @?= 1226
@@ -106,4 +121,16 @@ main = do
     , testCase "Day 11-2" $ day112 @?= Just 1627
     , testCase "Day 11-3" $ day113 @?= Just 195
     , testCase "Day 11-4" $ day114 @?= Just 329
+    -- , testCase "Day 12-1" $ day121 @?= Just 229
+    -- , testCase "Day 12-2" $ day122 @?= Just 3497
+    -- , testCase "Day 12-3" $ day123 @?= Just 3509
+    -- , testCase "Day 12-4" $ day124 @?= Just 93686
+    , testCase "Day 14-1" $ day141 @?= Just 1588
+    , testCase "Day 14-2" $ day142 @?= Just 2874
+    , testCase "Day 14-3" $ day143 @?= Just 2188189693529
+    , testCase "Day 14-4" $ day144 @?= Just 5208377027195
+    , testCase "Day 16-1" $ day161 @?= Just 31
+    , testCase "Day 16-2" $ day162 @?= Just 979
+    , testCase "Day 16-3" $ day163 @?= Just 54
+    , testCase "Day 16-4" $ day164 @?= Just 277110354175
     ]

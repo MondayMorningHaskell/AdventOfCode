@@ -14,10 +14,14 @@ import qualified Data.HashMap.Strict as HM
 import Data.Text (Text, pack)
 import Data.Void (Void)
 import Text.Megaparsec ( some, Parsec, sepBy, runParser, ParsecT, runParserT, someTill, MonadParsec (eof, try), sepEndBy1, sepBy1, (<|>), many )
-import Text.Megaparsec.Char ( digitChar, char, hspace, eol, hspace1 )
-import Control.Monad.Logger (MonadLogger, logDebugN)
+import Text.Megaparsec.Char ( digitChar, char, hspace, eol, hspace1, hexDigitChar )
+import Control.Monad.Logger (MonadLogger, logDebugN, logErrorN)
 import Data.Functor (($>))
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import GHC.Base (VecElem(Int16ElemRep))
+import Control.Monad.Trans.Maybe (MaybeT)
+import Data.Word (Word64, Word8)
+import Control.Monad (mzero)
 
 -- Helpful Types
 type Coord2 = (Int, Int)
@@ -193,3 +197,64 @@ getNeighbors8 grid (row, col) = catMaybes
     maybeDownLeft = if row < maxRow && col > 0 then Just (row + 1, col - 1) else Nothing
     maybeLeft = if col > 0 then Just (row, col - 1) else Nothing
     maybeUpLeft = if row > 0 && col > 0 then Just (row - 1, col - 1) else Nothing
+
+-- Binary
+data Bit = Zero | One
+  deriving (Eq, Ord)
+
+instance Show Bit where
+  show Zero = "0"
+  show One = "1"
+
+parseHexadecimal :: (MonadLogger m) => ParsecT Void Text m String
+parseHexadecimal = some hexDigitChar
+
+parseHexChar :: (MonadLogger m) => Char -> MaybeT m [Bit]
+parseHexChar '0' = return [Zero, Zero, Zero, Zero]
+parseHexChar '1' = return [Zero, Zero, Zero, One]
+parseHexChar '2' = return [Zero, Zero, One, Zero]
+parseHexChar '3' = return [Zero, Zero, One, One]
+parseHexChar '4' = return [Zero, One, Zero, Zero]
+parseHexChar '5' = return [Zero, One, Zero, One]
+parseHexChar '6' = return [Zero, One, One, Zero]
+parseHexChar '7' = return [Zero, One, One, One]
+parseHexChar '8' = return [One, Zero, Zero, Zero]
+parseHexChar '9' = return [One, Zero, Zero, One]
+parseHexChar 'A' = return [One, Zero, One, Zero]
+parseHexChar 'B' = return [One, Zero, One, One]
+parseHexChar 'C' = return [One, One, Zero, Zero]
+parseHexChar 'D' = return [One, One, Zero, One]
+parseHexChar 'E' = return [One, One, One, Zero]
+parseHexChar 'F' = return [One, One, One, One]
+parseHexChar c = logErrorN ("Invalid Hex Char: " <> pack [c]) >> mzero
+
+bitsToDecimal8 :: [Bit] -> Word8
+bitsToDecimal8 bits = if length bits > 8
+  then error ("Too long! Use bitsToDecimal64! " ++ show bits)
+  else btd8 0 1 (reverse bits)
+    where
+      btd8 :: Word8 -> Word8 -> [Bit] -> Word8
+      btd8 accum _ [] = accum
+      btd8 accum mult (b : rest) = case b of
+        Zero -> btd8 accum (mult * 2) rest
+        One -> btd8 (accum + mult) (mult * 2) rest
+
+bitsToDecimal64 :: [Bit] -> Word64
+bitsToDecimal64 bits = if length bits > 64
+  then error ("Too long! Use bitsToDecimalInteger! " ++ (show $ bits))
+  else btd64 0 1 (reverse bits)
+    where
+      btd64 :: Word64 -> Word64 -> [Bit] -> Word64
+      btd64 accum _ [] = accum
+      btd64 accum mult (b : rest) = case b of
+        Zero -> btd64 accum (mult * 2) rest
+        One -> btd64 (accum + mult) (mult * 2) rest
+
+bitsToDecimalInteger :: (MonadLogger m) => [Bit] -> MaybeT m Integer
+bitsToDecimalInteger bits = btd 0 1 (reverse bits)
+    where
+      btd :: (Monad m) => Integer-> Integer -> [Bit] -> m Integer
+      btd accum _ [] = return accum
+      btd accum mult (b : rest) = case b of
+        Zero -> btd accum (mult * 2) rest
+        One -> btd (accum + mult) (mult * 2) rest
