@@ -28,6 +28,10 @@ type Coord2 = (Int, Int)
 type Coord2f = (Double, Double)
 type Grid2 a = Array Coord2 a
 
+isBounded :: Coord2 -> (Coord2, Coord2) -> Bool
+isBounded (x, y) ((mnX, mnY), (mxX, mxY)) =
+  mnX <= x && x <= mxX && mnY <= y && y <= mxY
+
 -- Reading From Files
 readIntsFromFile :: FilePath -> IO [Int]
 readIntsFromFile = readLinesFromFile read
@@ -109,16 +113,16 @@ digitsToArray inputs = A.listArray ((0, 0), (length inputs - 1, length (head inp
 parseDigitLine :: ParsecT Void Text m [Int]
 parseDigitLine = fmap digitToInt <$> some digitChar
 
-hashMapFromNestedLists :: [[Int]] -> HashMap Coord2 Int
+hashMapFromNestedLists :: [[a]] -> HashMap Coord2 a
 hashMapFromNestedLists inputs = foldl f HM.empty x
   where
-    x :: [(Int, [(Int, Int)])]
+    -- x :: [(Int, [(Int, a)])]
     x = zip [0,1..] (map (zip [0,1..]) inputs)
 
-    f :: HashMap Coord2 Int -> (Int, [(Int, Int)]) -> HashMap Coord2 Int
+    f :: HashMap Coord2 a -> (Int, [(Int, a)]) -> HashMap Coord2 a
     f prevMap (row, pairs) = foldl (g row) prevMap pairs
 
-    g :: Int -> HashMap Coord2 Int -> Coord2 -> HashMap Coord2 Int
+    g :: Int -> HashMap Coord2 a -> (Int, a) -> HashMap Coord2 a
     g row prevMap (col, val) = HM.insert (row, col) val prevMap
 
 
@@ -197,6 +201,19 @@ getNeighbors8 grid (row, col) = catMaybes
     maybeDownLeft = if row < maxRow && col > 0 then Just (row + 1, col - 1) else Nothing
     maybeLeft = if col > 0 then Just (row, col - 1) else Nothing
     maybeUpLeft = if row > 0 && col > 0 then Just (row - 1, col - 1) else Nothing
+
+getNeighbors8Flex :: Coord2 -> Coord2 -> Coord2 -> [Coord2]
+getNeighbors8Flex (minRow, minCol) (maxRow, maxCol) (row, col) = catMaybes
+  [maybeUpLeft, maybeUp, maybeUpRight, maybeLeft, maybeRight, maybeDownLeft, maybeDown, maybeDownRight]
+  where
+    maybeUp = if row > minRow then Just (row - 1, col) else Nothing
+    maybeUpRight = if row > minRow && col < maxCol then Just (row - 1, col + 1) else Nothing
+    maybeRight = if col < maxCol then Just (row, col + 1) else Nothing
+    maybeDownRight = if row < maxRow && col < maxCol then Just (row + 1, col + 1) else Nothing
+    maybeDown = if row < maxRow then Just (row + 1, col) else Nothing
+    maybeDownLeft = if row < maxRow && col > minCol then Just (row + 1, col - 1) else Nothing
+    maybeLeft = if col > minCol then Just (row, col - 1) else Nothing
+    maybeUpLeft = if row > minRow && col > minCol then Just (row - 1, col - 1) else Nothing
 
 -- Binary
 data Bit = Zero | One
