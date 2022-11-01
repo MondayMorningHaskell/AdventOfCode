@@ -6,7 +6,7 @@ import Text.Megaparsec (ParsecT, choice, some, sepEndBy1)
 import Text.Megaparsec.Char (char, eol)
 import Data.Void (Void)
 import Data.Text (Text, snoc)
-import Utils (Bit(..), Coord2, hashMapFromNestedLists, countWhere, getNeighbors8Flex, bitsToDecimal64, parseFile)
+import Utils (Bit(..), Coord2, hashMapFromNestedLists, countWhere, getNeighbors8Flex, bitsToDecimal64, parseFile, getNeighbors8Unbounded)
 import Data.HashMap.Strict (HashMap)
 import Data.Word (Word64)
 import qualified Data.HashMap.Strict as HM
@@ -43,7 +43,6 @@ solveDay20Hard fp = runStdoutLoggingT $ do
 
 type DecoderMap = HashMap Word64 Bit
 type ImageMap = HashMap Coord2 Bit
-type PixelSet = HashSet Coord2
 
 buildDecoder :: [Bit] -> DecoderMap
 buildDecoder input = HM.fromList (zip [0..] input)
@@ -69,29 +68,26 @@ runExpand decoderMap initialImage stepCount = do
   where
     outsideBit = if decoderMap HM.! 0 == Zero || even stepCount then Zero else One
 
-addNeighbors :: PixelSet -> Coord2 -> PixelSet
-addNeighbors pixelSet coord = foldl (flip HS.insert) pixelSet $ getNeighbors8Flex (minBound, minBound) (maxBound, maxBound) coord
-
 expandImage :: (MonadLogger m) => DecoderMap -> ImageMap -> Bit -> m ImageMap
-expandImage decoderMap image outsideBit = foldM (processPixel decoderMap image newBounds outsideBit) HM.empty allCoords
+expandImage decoderMap image outsideBit = foldM (processPixel decoderMap image outsideBit) HM.empty allCoords
   where
     (minRow, minCol) = minimum (HM.keys image)
     (maxRow, maxCol) = maximum (HM.keys image)
     newBounds = ((minRow - 1, minCol - 1), (maxRow + 1, maxCol + 1))
     allCoords = range newBounds
 
-processPixel :: (MonadLogger m) => DecoderMap -> ImageMap -> (Coord2, Coord2) -> Bit -> ImageMap -> Coord2 -> m ImageMap
-processPixel decoderMap initialImage bounds outsideBit newImage pixel = do
-  let allNeighbors = getNeighbors8Flex (minBound, minBound) (maxBound, maxBound) pixel
-      neighborBits = (initialImage !??) <$> allNeighbors
+processPixel :: (MonadLogger m) => DecoderMap -> ImageMap -> Bit -> ImageMap -> Coord2 -> m ImageMap
+processPixel decoderMap initialImage outsideBit newImage pixel = do
+  let allNeighbors = getNeighbors8Unbounded pixel
+      neighborBits = getBit <$> allNeighbors
   if length allNeighbors /= 8
     then error "Must have 8 neighbors!"
     else do
       let (first4, second4) = splitAt 4 neighborBits
-          finalBits = first4 ++ (initialImage !?? pixel : second4)
+          finalBits = first4 ++ (getBit pixel : second4)
           indexToDecode = bitsToDecimal64 finalBits
           bit = decoderMap HM.! indexToDecode
       return $ HM.insert pixel bit newImage
   where
-    (!??) :: ImageMap -> Coord2 -> Bit
-    (!??) imgMap coord = fromMaybe outsideBit (imgMap HM.!? coord)
+    getBit :: Coord2 -> Bit
+    getBit coord = fromMaybe outsideBit (initialImage HM.!? coord)

@@ -189,18 +189,12 @@ getAssocs grid = map (\c -> (c, grid A.! c))
 
 -- TODO: Should also do for Array
 getNeighbors8 :: HashMap Coord2 a -> Coord2 -> [Coord2]
-getNeighbors8 grid (row, col) = catMaybes
-  [maybeUp, maybeUpRight, maybeRight, maybeDownRight, maybeDown, maybeDownLeft, maybeLeft, maybeUpLeft]
+getNeighbors8 grid = getNeighbors8Flex (0, 0) (maxRow, maxCol)
   where
     (maxRow, maxCol) = maximum $ HM.keys grid
-    maybeUp = if row > 0 then Just (row - 1, col) else Nothing
-    maybeUpRight = if row > 0 && col < maxCol then Just (row - 1, col + 1) else Nothing
-    maybeRight = if col < maxCol then Just (row, col + 1) else Nothing
-    maybeDownRight = if row < maxRow && col < maxCol then Just (row + 1, col + 1) else Nothing
-    maybeDown = if row < maxRow then Just (row + 1, col) else Nothing
-    maybeDownLeft = if row < maxRow && col > 0 then Just (row + 1, col - 1) else Nothing
-    maybeLeft = if col > 0 then Just (row, col - 1) else Nothing
-    maybeUpLeft = if row > 0 && col > 0 then Just (row - 1, col - 1) else Nothing
+
+getNeighbors8Unbounded :: Coord2 -> [Coord2]
+getNeighbors8Unbounded = getNeighbors8Flex (minBound, minBound) (maxBound, maxBound)
 
 getNeighbors8Flex :: Coord2 -> Coord2 -> Coord2 -> [Coord2]
 getNeighbors8Flex (minRow, minCol) (maxRow, maxCol) (row, col) = catMaybes
