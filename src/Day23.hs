@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Day23 where
 
@@ -9,7 +9,7 @@ import Data.Maybe (isNothing, mapMaybe, fromJust, isJust, catMaybes)
 import GHC.Generics (Generic)
 import Data.Hashable (Hashable)
 import Algorithm.Search ( dijkstraM )
-import Control.Monad.Logger ( MonadLogger, runStdoutLoggingT )
+import Control.Monad.Logger ( MonadLogger, runStdoutLoggingT, logErrorN, logDebugN )
 import Data.Ix ( Ix )
 import Data.Text (pack)
 
@@ -27,29 +27,17 @@ d23HB = solveDay23Hard initialState4
 
 solveDay23Easy :: GraphState -> IO (Maybe Int)
 solveDay23Easy gs = runStdoutLoggingT $ do
-   result <- dijkstraM (getNeighbors 2) getCost isComplete gs
-   case result of
+  result <- dijkstraM (getNeighbors 2) getCost isComplete gs
+  case result of
     Nothing -> return Nothing
-    Just (d, path) -> do
-      -- forM_ path $ \gs' -> do
-        -- logErrorN (pack . show $ lastMove gs')
-        -- cost <- getCost gs gs'
-        -- logErrorN (pack . show $ cost)
-        -- logErrorN (pack . show $ gs')
-      return $ Just d
+    Just (d, path) -> return $ Just d
 
 solveDay23Hard :: GraphState -> IO (Maybe Int)
 solveDay23Hard gs = runStdoutLoggingT $ do
-   result <- dijkstraM (getNeighbors 4) getCost isComplete gs
-   case result of
+  result <- dijkstraM (getNeighbors 4) getCost isComplete gs
+  case result of
     Nothing -> return Nothing
-    Just (d, path) -> do
-      return $ Just d
-
-data Move =
-  NoMove |
-  Move Token HallSpace (Room, Int) Bool
-  deriving (Show, Eq, Ord)
+    Just (d, path) -> return $ Just d
 
 data Token = A | B | C | D
   deriving (Show, Eq, Ord, Enum, Ix)
@@ -80,6 +68,11 @@ data GraphState = GraphState
 type RoomLens = GraphState -> [Token]
 type HallLens = GraphState -> Maybe Token
 
+data Move =
+  NoMove |
+  Move Token HallSpace (Room, Int) Bool
+  deriving (Show, Eq, Ord)
+
 initialState1 :: GraphState
 initialState1 = GraphState
   NoMove 0 [B, A] [C, D] [B, C] [D, A]
@@ -100,13 +93,50 @@ initialState4 = GraphState
   NoMove 0 [C, D, D, B] [A, C, B, A] [D, B, A, B] [D, A, C, C]
   Nothing Nothing Nothing Nothing Nothing Nothing Nothing
 
+isComplete :: (MonadLogger m) => GraphState -> m Bool
+isComplete gs = return (roomsFull gs == 4)
+
+getCost :: (MonadLogger m) => GraphState -> GraphState -> m Int
+getCost _ gs = if lastMove gs == NoMove
+  then return 0
+  else do
+    let (Move token hs (rm, slot) _) = lastMove gs
+        multiplier = tokenPower A.! token
+        distance = hallRoomDistance A.! (hs, rm) + slot
+    return $ multiplier * distance
+
 getNeighbors :: (MonadLogger m) => Int -> GraphState -> m [GraphState]
 getNeighbors rs gs = do
-  arm <- roomMoves rs A RA roomA aSplits gs
-  brm <- roomMoves rs B RB roomB bSplits gs
-  crm <- roomMoves rs C RC roomC cSplits gs
-  drm <- roomMoves rs D RD roomD dSplits gs
-  return $ arm <> brm <> crm <> drm
+  aMoves <- roomMoves rs A RA roomA aSplits gs
+  bMoves <- roomMoves rs B RB roomB bSplits gs
+  cMoves <- roomMoves rs C RC roomC cSplits gs
+  dMoves <- roomMoves rs D RD roomD dSplits gs
+  return $ aMoves <> bMoves <> cMoves <> dMoves
+
+roomMoves ::
+  (MonadLogger m) =>
+  Int ->
+  Token ->
+  Room ->
+  RoomLens ->
+  ([(HallLens, HallSpace)], [(HallLens, HallSpace)]) ->
+  GraphState ->
+  m [GraphState]
+roomMoves rs tok rm roomLens splits gs
+  | roomLens gs == replicate rs tok = return []
+  | all (== tok) (roomLens gs) = do
+    let maybeLeft = findX tok gs (fst splits)
+        maybeRight = findX tok gs (snd splits)
+        halls = catMaybes [maybeLeft, maybeRight]
+        slot = rs - length (roomLens gs)
+        moves = map (\h -> Move tok h (rm, slot) False) halls
+    return $ map (applyHallMove rs roomLens gs) moves
+  | otherwise = do
+    let (topRoom : restRoom) = roomLens gs
+        slot = rs - length restRoom
+        halls = findEmptyHalls gs (fst splits) [] <> findEmptyHalls gs (snd splits) []
+        moves = map (\h -> Move topRoom h (rm, slot) True) halls
+    return $ map (applyRoomMove gs) moves
 
 findEmptyHalls :: GraphState -> [(HallLens, HallSpace)] -> [HallSpace] -> [HallSpace]
 findEmptyHalls _ [] accum = accum
@@ -120,9 +150,9 @@ findX tok gs ((lens, space) : rest)
   | isJust (lens gs) = Nothing
   | otherwise = findX tok gs rest
 
-applyRoomMove :: GraphState -> Token -> Move -> GraphState
-applyRoomMove gs roomToken NoMove = gs
-applyRoomMove gs roomToken m@(Move token h (rm, slot) _) =
+applyRoomMove :: GraphState -> Move -> GraphState
+applyRoomMove gs NoMove = gs
+applyRoomMove gs m@(Move token h (rm, slot) _) =
   let gs2 = case h of
         H1 -> gs {hall1 = Just token, lastMove = m}
         H2 -> gs {hall2 = Just token, lastMove = m}
@@ -131,15 +161,15 @@ applyRoomMove gs roomToken m@(Move token h (rm, slot) _) =
         H8 -> gs {hall8 = Just token, lastMove = m}
         H10 -> gs {hall10 = Just token, lastMove = m}
         H11 -> gs {hall11 = Just token, lastMove = m}
-  in  case roomToken of
-    A -> gs2 { roomA = tail (roomA gs)}
-    B -> gs2 { roomB = tail (roomB gs)}
-    C -> gs2 { roomC = tail (roomC gs)}
-    D -> gs2 { roomD = tail (roomD gs)}
+  in  case rm of
+    RA -> gs2 { roomA = tail (roomA gs)}
+    RB -> gs2 { roomB = tail (roomB gs)}
+    RC -> gs2 { roomC = tail (roomC gs)}
+    RD -> gs2 { roomD = tail (roomD gs)}
 
-applyHallMove :: Int -> Token -> RoomLens -> GraphState -> Move -> GraphState
-applyHallMove rs roomToken roomLens gs NoMove = gs
-applyHallMove rs roomToken roomLens gs m@(Move token h (rm, slot) _) =
+applyHallMove :: Int -> RoomLens -> GraphState -> Move -> GraphState
+applyHallMove rs roomLens gs NoMove = gs
+applyHallMove rs roomLens gs m@(Move token h (rm, slot) _) =
   let gs2 = case h of
         H1 -> gs {hall1 = Nothing, lastMove = m, roomsFull = finishedCount}
         H2 -> gs {hall2 = Nothing, lastMove = m, roomsFull = finishedCount}
@@ -148,52 +178,16 @@ applyHallMove rs roomToken roomLens gs m@(Move token h (rm, slot) _) =
         H8 -> gs {hall8 = Nothing, lastMove = m, roomsFull = finishedCount}
         H10 -> gs {hall10 = Nothing, lastMove = m, roomsFull = finishedCount}
         H11 -> gs {hall11 = Nothing, lastMove = m, roomsFull = finishedCount}
-  in case roomToken of
-    A -> gs2 {roomA = A : roomA gs}
-    B -> gs2 {roomB = B : roomB gs}
-    C -> gs2 {roomC = C : roomC gs}
-    D -> gs2 {roomD = D : roomD gs}
+  in  case token of
+    A -> gs2 {roomA = A : roomA gs }
+    B -> gs2 {roomB = B : roomB gs }
+    C -> gs2 {roomC = C : roomC gs }
+    D -> gs2 {roomD = D : roomD gs }
   where
     finished = length (roomLens gs) == rs - 1
-    finishedCount = if finished then roomsFull gs + 1 else roomsFull gs
+    finishedCount = roomsFull gs + if finished then 1 else 0
 
-roomMoves ::
-  (MonadLogger m) =>
-  Int ->
-  Token ->
-  Room ->
-  RoomLens ->
-  ([(HallLens, HallSpace)], [(HallLens, HallSpace)]) ->
-  GraphState ->
-  m [GraphState]
-roomMoves rs tok rm roomLens splits gs 
-  | roomLens gs == replicate rs tok = return []
-  | all (== tok) (roomLens gs) = do
-    let maybeLeft = findX tok gs (fst splits)
-        maybeRight = findX tok gs (snd splits)
-        slot = rs - length (roomLens gs)
-        halls = catMaybes [maybeLeft, maybeRight]
-        moves = map (\h -> Move tok h (rm, slot) False) halls
-    return $ map (applyHallMove rs tok roomLens gs) moves
-  | otherwise = do
-    let (topRoom : restRoom) = roomLens gs
-        slot = rs - length restRoom
-        halls = findEmptyHalls gs (fst splits) [] <> findEmptyHalls gs (snd splits) []
-        moves = map (\h -> Move topRoom h (rm, slot) True) halls
-    return $ map (applyRoomMove gs tok) moves
-
-getCost :: (MonadLogger m) => GraphState -> GraphState -> m Int
-getCost _ gs = if lastMove gs == NoMove
-  then return 0
-  else do
-    let (Move token hs (rm, slot) _) = lastMove gs
-    let mult = tokenPower A.! token
-    let distance = slot + hallRoomDistance A.! (hs, rm)
-    return $ mult * distance
-
-isComplete :: (MonadLogger m) => GraphState -> m Bool
-isComplete gs = return (roomsFull gs == 4)
-
+-- Constants
 aSplits :: ([(HallLens, HallSpace)], [(HallLens, HallSpace)])
 aSplits =
   ( [(hall2, H2), (hall1, H1)]
