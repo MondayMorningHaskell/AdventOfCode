@@ -4,13 +4,20 @@ import Data.Array (Array, listArray)
 import qualified Data.Array as A
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import Test.Tasty
-import Test.Tasty.HUnit
+import Test.Tasty ( defaultMain, testGroup, TestTree )
+import Test.Tasty.HUnit ( testCase, (@?=) )
 
 import Dijkstra
+    ( findShortestDistance,
+      findShortestPath,
+      findShortestPath_,
+      Graph(Graph),
+      Graph2D(..),
+      GraphDist(Infinity, Dist) )
 import Lib (read2DDigits)
 import Second (augmentRisks)
 import Amphipods
+    ( aState1, aState2, aStateTest2, aStateTest3, newSolveAmph )
 
 main :: IO ()
 main = do
