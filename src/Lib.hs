@@ -102,27 +102,23 @@ calculateFinalPositions' = calculateTail (0, 0, 0)
 
 
 -- Day 3
-solvePower :: IO ()
-solvePower = do
-  args <- getArgs
-  case args of
-    [] -> print "No input file!"
-    (fp : _) -> do
-      binaryStrings <- lines <$> readFile fp
-      let resultMap = processStrings binaryStrings
-      let gamma = produceGamma resultMap (length binaryStrings)
-      let epsilon = produceEpsilonFromGamma gamma
-      let gammaNum = binaryStringToNumber gamma
-      let epsilonNum = binaryStringToNumber epsilon
-      print (gammaNum, epsilonNum)
-      print $ gammaNum * epsilonNum
-      let oxyGen = findRatingString True binaryStrings
-      let co2Scrubber = findRatingString False binaryStrings
-      print (oxyGen, co2Scrubber)
-      let oxyGenNum = binaryStringToNumber $ head oxyGen
-      let co2ScrubberNum = binaryStringToNumber $ head co2Scrubber
-      print (oxyGenNum, co2ScrubberNum)
-      print $ oxyGenNum * co2ScrubberNum
+solvePower :: FilePath -> IO ()
+solvePower fp = do
+  binaryStrings <- lines <$> readFile fp
+  let resultMap = processStrings binaryStrings
+  let gamma = produceGamma resultMap (length binaryStrings)
+  let epsilon = produceEpsilonFromGamma gamma
+  let gammaNum = binaryStringToNumber gamma
+  let epsilonNum = binaryStringToNumber epsilon
+  print (gammaNum, epsilonNum)
+  print $ gammaNum * epsilonNum
+  let oxyGen = findRatingString True binaryStrings
+  let co2Scrubber = findRatingString False binaryStrings
+  print (oxyGen, co2Scrubber)
+  let oxyGenNum = binaryStringToNumber $ head oxyGen
+  let co2ScrubberNum = binaryStringToNumber $ head co2Scrubber
+  print (oxyGenNum, co2ScrubberNum)
+  print $ oxyGenNum * co2ScrubberNum
 
 processStrings :: [String] -> M.Map Int Int
 processStrings = foldl processString M.empty
