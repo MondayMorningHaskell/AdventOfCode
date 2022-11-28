@@ -2,94 +2,107 @@
 
 module Day20 where
 
-import Text.Megaparsec (ParsecT, choice, some, sepEndBy1)
-import Text.Megaparsec.Char (char, eol)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Data.Text (Text, snoc)
-import Utils (Bit(..), Coord2, hashMapFromNestedLists, countWhere, getNeighbors8Flex, bitsToDecimal64, parseFile, getNeighbors8Unbounded)
-import Data.HashMap.Strict (HashMap)
-import Data.Word (Word64)
-import qualified Data.HashMap.Strict as HM
-import Control.Monad.Logger (MonadLogger, logErrorN, runStdoutLoggingT)
-import Control.Monad.Cont (foldM)
-import Data.HashSet (HashSet)
-import qualified Data.HashSet as HS
-import Data.Maybe (fromMaybe)
-import Data.Ix (range)
+import Data.Text (Text)
 
-d20ES :: IO (Maybe Int)
-d20ES = solveDay20Easy "inputs/day_20_small.txt"
+import Utils (parseFile)
 
-d20EB :: IO (Maybe Int)
-d20EB = solveDay20Easy "inputs/day_20_big.txt"
+dayNum :: Int
+dayNum = 20
 
-d20HS :: IO (Maybe Int)
-d20HS = solveDay20Hard "inputs/day_20_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d20HB :: IO (Maybe Int)
-d20HB = solveDay20Hard "inputs/day_20_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay20Easy :: String -> IO (Maybe Int)
-solveDay20Easy fp = runStdoutLoggingT $ do
-  (decoderMap, initialImage) <- parseFile parseInput fp
-  pixelsLit <- runExpand decoderMap initialImage 2
-  return $ Just pixelsLit
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay20Hard :: String -> IO (Maybe Int)
-solveDay20Hard fp = runStdoutLoggingT $ do
-  (decoderMap, initialImage) <- parseFile parseInput fp
-  pixelsLit <- runExpand decoderMap initialImage 50
-  return $ Just pixelsLit
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-type DecoderMap = HashMap Word64 Bit
-type ImageMap = HashMap Coord2 Bit
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-buildDecoder :: [Bit] -> DecoderMap
-buildDecoder input = HM.fromList (zip [0..] input)
+-- type InputType = [LineType]
+-- type LineType = ()
 
-parseInput :: (MonadLogger m) => ParsecT Void Text m (DecoderMap, ImageMap)
-parseInput = do
-  decoderMap <- buildDecoder <$> some parsePixel
-  eol >> eol
-  image <- hashMapFromNestedLists <$> parse2DImage
-  return (decoderMap, image)
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-parsePixel :: (MonadLogger m) => ParsecT Void Text m Bit
-parsePixel = choice [char '.' >> return Zero, char '#' >> return One]
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-parse2DImage :: (MonadLogger m) => ParsecT Void Text m [[Bit]]
-parse2DImage = sepEndBy1 (some parsePixel) eol
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-runExpand :: (MonadLogger m) => DecoderMap -> ImageMap -> Int -> m Int
-runExpand _ image 0 = return $ countWhere (== One) (HM.elems image)
-runExpand decoderMap initialImage stepCount = do
-  finalImage <- expandImage decoderMap initialImage outsideBit
-  runExpand decoderMap finalImage (stepCount - 1)
-  where
-    outsideBit = if decoderMap HM.! 0 == Zero || even stepCount then Zero else One
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
 
-expandImage :: (MonadLogger m) => DecoderMap -> ImageMap -> Bit -> m ImageMap
-expandImage decoderMap image outsideBit = foldM
-  (processPixel decoderMap image outsideBit) HM.empty allCoords
-  where
-    (minRow, minCol) = minimum (HM.keys image)
-    (maxRow, maxCol) = maximum (HM.keys image)
-    newBounds = ((minRow - 1, minCol - 1), (maxRow + 1, maxCol + 1))
-    allCoords = range newBounds
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
 
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
 
-processPixel :: (MonadLogger m) => DecoderMap -> ImageMap -> Bit -> ImageMap -> Coord2 -> m ImageMap
-processPixel decoderMap initialImage outsideBit newImage pixel = do
-  let allNeighbors = getNeighbors8Unbounded pixel
-      neighborBits = getBit <$> allNeighbors
-  if length allNeighbors /= 8
-    then error "Must have 8 neighbors"
-    else do
-      let (first4, second4) = splitAt 4 neighborBits
-          finalBits = first4 ++ (getBit pixel : second4)
-          indexToDecode = bitsToDecimal64 finalBits
-          bit = decoderMap HM.! indexToDecode
-      return $ HM.insert pixel bit newImage
-  where
-    getBit :: Coord2 -> Bit
-    getBit coord = fromMaybe outsideBit (initialImage HM.!? coord)
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

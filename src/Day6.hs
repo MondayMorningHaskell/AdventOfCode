@@ -2,75 +2,107 @@
 
 module Day6 where
 
-import Text.Megaparsec ()
-import Text.Megaparsec.Char ()
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
 import Data.Text (Text)
-import Utils (parseCSVInts, parseFile)
 
-d6ES :: IO (Maybe Integer)
-d6ES = solveDay6Easy "inputs/day_6_small.txt"
+import Utils (parseFile)
 
-d6EB :: IO (Maybe Integer)
-d6EB = solveDay6Easy "inputs/day_6_big.txt"
+dayNum :: Int
+dayNum = 6
 
-d6HS :: IO (Maybe Integer)
-d6HS = solveDay6Hard "inputs/day_6_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d6HB :: IO (Maybe Integer)
-d6HB = solveDay6Hard "inputs/day_6_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay6Easy :: String -> IO (Maybe Integer)
-solveDay6Easy fp = do
-  inputs <- parseInputs fp
-  let initialState = produceInitialFishState inputs
-  return $ Just (runDay6 80 initialState)
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay6Hard :: String -> IO (Maybe Integer)
-solveDay6Hard fp = do
-  inputs <- parseInputs fp
-  let initialState = produceInitialFishState inputs
-  return $ Just (runDay6 256 initialState)
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-parseInputs :: FilePath -> IO [Int]
-parseInputs = parseFile parseCSVInts
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-data FishState = FishState
-  { t0 :: Integer
-  , t1 :: Integer
-  , t2 :: Integer
-  , t3 :: Integer
-  , t4 :: Integer
-  , t5 :: Integer
-  , t6 :: Integer
-  , t7 :: Integer
-  , t8 :: Integer
-  } deriving (Show)
+-- type InputType = [LineType]
+-- type LineType = ()
 
-produceInitialFishState :: [Int] -> FishState
-produceInitialFishState = foldl pifs (FishState 0 0 0 0 0 0 0 0 0)
-  where
-    pifs :: FishState -> Int -> FishState
-    pifs fs i = case i of
-      0 -> fs { t0 = t0 fs + 1 }
-      1 -> fs { t1 = t1 fs + 1 }
-      2 -> fs { t2 = t2 fs + 1 }
-      3 -> fs { t3 = t3 fs + 1 }
-      4 -> fs { t4 = t4 fs + 1 }
-      5 -> fs { t5 = t5 fs + 1 }
-      6 -> fs { t6 = t6 fs + 1 }
-      7 -> fs { t7 = t7 fs + 1 }
-      8 -> fs { t8 = t8 fs + 1 }
-      _ -> fs
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-sumFishState :: FishState -> Integer
-sumFishState (FishState f0 f1 f2 f3 f4 f5 f6 f7 f8) = f0 + f1 + f2 + f3 + f4 + f5 + f6 + f7 + f8
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-runDay6 :: Int -> FishState -> Integer
-runDay6 numDays initialState = sumFishState finalState
-  where
-    finalState = last (take (numDays + 1) (iterate updateFishState initialState))
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-updateFishState :: FishState -> FishState
-updateFishState (FishState f0 f1 f2 f3 f4 f5 f6 f7 f8) = FishState
-  f1 f2 f3 f4 f5 f6 (f7 + f0) f8 f0
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
+
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

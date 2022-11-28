@@ -2,95 +2,107 @@
 
 module Day12 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN)
-import Data.Char (isLower)
-import Data.List (all)
-import qualified Data.HashSet as HS
-import Data.HashSet (HashSet)
-import qualified Data.HashMap.Strict as HM
-import Data.HashMap.Strict (HashMap)
-import Data.Maybe (fromMaybe)
-import Text.Megaparsec (ParsecT, choice, some)
-import Text.Megaparsec.Char (string, char, letterChar)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Data.Text (Text, unpack, pack)
-import Utils (parseLinesFromFile, OccMap, incKey, occLookup, emptyOcc)
+import Data.Text (Text)
 
-d12ES :: IO (Maybe Int)
-d12ES = solveDay12Easy "inputs/day_12_small.txt"
+import Utils (parseFile)
 
-d12EB :: IO (Maybe Int)
-d12EB = solveDay12Easy "inputs/day_12_big.txt"
+dayNum :: Int
+dayNum = 12
 
-d12HS :: IO (Maybe Int)
-d12HS = solveDay12Hard "inputs/day_12_basic_2.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d12HB :: IO (Maybe Int)
-d12HB = solveDay12Hard "inputs/day_12_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay12Easy :: String -> IO (Maybe Int)
-solveDay12Easy fp = do
-  graphLines <- parseLinesFromFile parseGraphLine fp
-  let graph = constructGraph graphLines
-  result <- runStdoutLoggingT $ countPaths' easyVisitedPred graph (HS.empty, False) "start"
-  return $ Just result
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay12Hard :: String -> IO (Maybe Int)
-solveDay12Hard fp = do
-  graphLines <- parseLinesFromFile parseGraphLine fp
-  let graph = constructGraph graphLines
-  result <- runStdoutLoggingT $ countPaths' hardVisitedPred graph (HS.empty, False) "start"
-  return $ Just result
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-newtype Graph = Graph
-  { graphEdges :: HashMap String (HashSet String) }
-  deriving (Show)
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-parseGraphLine :: (Monad m) => ParsecT Void Text m (String, String)
-parseGraphLine = do
-  node1 <- parseNodeName
-  char '-'
-  node2 <- parseNodeName
-  return (unpack node1, unpack node2)
-  where
-    parseNodeName :: ParsecT Void Text m Text
-    parseNodeName = choice [string "start", string "end", pack <$> some letterChar] --  , string "end", some letterChar]
+-- type InputType = [LineType]
+-- type LineType = ()
 
-constructGraph :: [(String, String)] -> Graph
-constructGraph inputs = Graph (foldl f HM.empty inputs)
-  where
-    f :: HashMap String (HashSet String) -> (String, String) -> HashMap String (HashSet String)
-    f prevMap (src, dst) =
-      let prevEdges1 = fromMaybe HS.empty (HM.lookup src prevMap)
-          prevEdges2 = fromMaybe HS.empty (HM.lookup dst prevMap)
-          map2 = HM.insert src (HS.insert dst prevEdges1) prevMap
-      in  HM.insert dst (HS.insert src prevEdges2) map2
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
--- Graph is not directed
-countPaths' :: (MonadLogger m) =>
-  ((HashSet String, Bool)-> String -> Bool) -> Graph -> (HashSet String, Bool) -> String -> m Int
-countPaths' visitedPred gr@(Graph edges) v@(visited, hasSeenSmall) top = do
-  if top == "end"
-    then return 1
-    else
-      do
-        let newEdges = HS.filter (not . visitedPred v) $ fromMaybe HS.empty (HM.lookup top edges)
-            newVisited = if HS.member top visited && isSmall top
-              then (visited, True)
-              else (HS.insert top visited, hasSeenSmall)
-        logDebugN $ "Processing Top: " <> pack top
-        logDebugN $ "New Edges: " <> (pack . show $ newEdges)
-        logDebugN $ "Old Visited : " <> (pack . show $ v)
-        logDebugN $ "New Visited : " <> (pack . show $ newVisited)
-        sum <$> mapM (countPaths' visitedPred gr newVisited) (HS.toList newEdges)
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-easyVisitedPred :: (HashSet String, Bool) -> String -> Bool
-easyVisitedPred _ "start" = True
-easyVisitedPred (visited, _) node = isSmall node && HS.member node visited
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-hardVisitedPred :: (HashSet String, Bool) -> String -> Bool
-hardVisitedPred _ "start" = True
-hardVisitedPred (visited, hasSeenSmall) node = isSmall node && HS.member node visited && hasSeenSmall
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
 
-isSmall :: String -> Bool
-isSmall = all isLower
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

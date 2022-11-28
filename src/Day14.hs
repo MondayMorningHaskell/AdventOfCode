@@ -2,111 +2,107 @@
 
 module Day14 where
 
-import Text.Megaparsec (ParsecT, some, sepEndBy1)
-import Text.Megaparsec.Char (letterChar, eol, string)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Data.Text (Text, pack)
-import Utils (parseFile, incKey, emptyOcc, OccMapBig, addKey)
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN, logErrorN)
-import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
-import Control.Monad (foldM)
-import qualified Data.Map as M
-import Data.Maybe (fromMaybe)
+import Data.Text (Text)
 
-d14ES :: IO (Maybe Integer)
-d14ES = solveDay14Easy "inputs/day_14_small.txt"
+import Utils (parseFile)
 
-d14EB :: IO (Maybe Integer)
-d14EB = solveDay14Easy "inputs/day_14_big.txt"
+dayNum :: Int
+dayNum = 14
 
-d14HS :: IO (Maybe Integer)
-d14HS = solveDay14Hard "inputs/day_14_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d14HB :: IO (Maybe Integer)
-d14HB = solveDay14Hard "inputs/day_14_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay14Easy :: String -> IO (Maybe Integer)
-solveDay14Easy fp = runStdoutLoggingT $ do
-  (starterCode, pairCodes) <- parseFile parseInput fp
-  expandPolymerLong 10 starterCode pairCodes
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay14Hard :: String -> IO (Maybe Integer)
-solveDay14Hard fp = runStdoutLoggingT $ do
-  (starterCode, pairCodes) <- parseFile parseInput fp
-  expandPolymerLong 40 starterCode pairCodes
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-type PairMap = HashMap (Char, Char) Char
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
--- Doesn't work well beyond size 10 or so
-expandPolymerNaive :: (MonadLogger m) => Int -> String -> PairMap -> m (Maybe Integer)
-expandPolymerNaive numSteps starterCode pairMap = do
-  finalString <- foldM runStep starterCode [1..numSteps]
-  let charMap = M.elems $ foldl incKey emptyOcc finalString
-  if null charMap
-    then logErrorN "Final Occurrence Map is empty!" >> return Nothing
-    else return $ Just $ fromIntegral (maximum charMap - minimum charMap)
-  where
-    runStep :: (MonadLogger m) => String -> Int -> m String
-    runStep input _ = runExpand "" input
+-- type InputType = [LineType]
+-- type LineType = ()
 
-    runExpand :: (MonadLogger m) => String -> String -> m String
-    runExpand accum "" = logErrorN "Reached empty remainder!" >> return (reverse accum) -- < This case shouldn't happen
-    runExpand accum [lastChar] = return $ reverse (lastChar : accum)
-    runExpand accum (nextChar : secondChar : rest) = case HM.lookup (nextChar, secondChar) pairMap of
-        Nothing -> logErrorN ("Missing Case: " <> pack [nextChar, secondChar]) >> runExpand (nextChar : accum) (secondChar : rest)
-        Just insertChar -> runExpand (insertChar : nextChar : accum) (secondChar : rest)
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-expandPolymerLong :: (MonadLogger m) => Int -> String -> PairMap -> m (Maybe Integer)
-expandPolymerLong numSteps starterCode pairMap = do
-  let starterMap = buildMapF M.empty starterCode
-  finalOccMap <- foldM runStep starterMap [1..numSteps]
-  let finalCharCountMap = foldl countChars M.empty (M.toList finalOccMap)
-  let finalCounts = map quotRoundUp (M.toList finalCharCountMap)
-  if null finalCounts
-    then logErrorN "Final Occurence Map is empty" >> return Nothing
-    else return $ Just $ fromIntegral (maximum finalCounts - minimum finalCounts)
-  where
-    buildMapF :: OccMapBig (Char, Char) -> String -> OccMapBig (Char, Char)
-    buildMapF prevMap "" = prevMap
-    buildMapF prevMap [_] = prevMap
-    buildMapF prevMap (firstChar : secondChar : rest) = buildMapF (incKey prevMap (firstChar, secondChar)) (secondChar : rest)
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-    runStep :: (MonadLogger m) => OccMapBig (Char, Char) -> Int -> m (OccMapBig (Char, Char))
-    runStep prevMap _ = foldM runExpand M.empty (M.toList prevMap)
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-    runExpand :: (MonadLogger m) => OccMapBig (Char, Char) -> ((Char, Char), Integer) -> m (OccMapBig (Char, Char))
-    runExpand prevMap (code@(c1,c2), count) = case HM.lookup code pairMap of
-      Nothing -> logErrorN ("Missing Code: " <> pack [c1, c2]) >> return prevMap
-      Just newChar -> do
-        let first = (c1, newChar)
-            second = (newChar, c2)
-        return $ addKey (addKey prevMap first count) second count
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
 
-    countChars :: OccMapBig Char -> ((Char, Char), Integer) -> OccMapBig Char
-    countChars prevMap ((c1, c2), count) = addKey (addKey prevMap c1 count) c2 count
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
 
-    quotRoundUp :: (Char, Integer) -> Integer
-    quotRoundUp (c, i) = if even i
-      then quot i 2 + if head starterCode == c && last starterCode == c
-        then 1
-        else 0
-      else quot i 2 + 1
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
 
-buildPairMap :: [(Char, Char, Char)] -> HashMap (Char, Char) Char
-buildPairMap = foldl (\prevMap (c1, c2, c3) -> HM.insert (c1, c2) c3 prevMap) HM.empty
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
 
-parseInput :: (MonadLogger m) => ParsecT Void Text m (String, PairMap)
-parseInput = do
-  starterCode <- some letterChar
-  eol >> eol
-  pairCodes <- sepEndBy1 parsePairCode eol
-  return (starterCode, buildPairMap pairCodes)
+-------------------- SOLUTION PATTERNS --------------------
 
-parsePairCode :: (MonadLogger m) => ParsecT Void Text m (Char, Char, Char)
-parsePairCode = do
-  input1 <- letterChar
-  input2 <- letterChar
-  string " -> "
-  output <- letterChar
-  return (input1, input2, output)
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

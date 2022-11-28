@@ -2,68 +2,107 @@
 
 module Day2 where
 
-import Data.Text (Text, pack)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Text.Megaparsec
-import Text.Megaparsec.Char
+import Data.Text (Text)
 
-import Utils (parsePositiveNumber, readLinesFromFile)
+import Utils (parseFile)
 
-d2ES :: IO Int
-d2ES = solveDay2Easy "inputs/day_2_small.txt"
+dayNum :: Int
+dayNum = 2
 
-d2EB :: IO Int
-d2EB = solveDay2Easy "inputs/day_2_big.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d2HS :: IO Int
-d2HS = solveDay2Hard "inputs/day_2_small.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-d2HB :: IO Int
-d2HB = solveDay2Hard "inputs/day_2_big.txt"
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay2Easy :: String -> IO Int
-solveDay2Easy fp = instructionsToSolutionEasy <$> readLinesFromFile parseInstruction fp
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-solveDay2Hard :: String -> IO Int
-solveDay2Hard fp = instructionsToSolutionHard <$> readLinesFromFile parseInstruction fp
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-data Instruction =
-    Forward Int |
-    Down Int |
-    Up Int
-    deriving (Show, Eq)
+-- type InputType = [LineType]
+-- type LineType = ()
 
-parseInstruction :: String -> Instruction
-parseInstruction input = case runParser myParser "Day2.hs" (pack input) of
-    Left e -> error $ "Could not parse: " ++ show e
-    Right x -> x
-  where
-    myParser :: Parsec Void Text Instruction
-    myParser = do
-      constructor <-
-        try (string "forward " >> return Forward) <|>
-        try (string "up " >> return Up) <|>
-        (string "down " >> return Down)
-      constructor <$> parsePositiveNumber
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-instructionsToSolutionEasy :: [Instruction] -> Int
-instructionsToSolutionEasy instructions = finalHorizontal * finalVertical
-  where
-    (finalHorizontal, finalVertical) = foldl f (0, 0) instructions
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-    f :: (Int, Int) -> Instruction -> (Int, Int)
-    f (h0, v0) instruction = case instruction of
-      Forward x -> (h0 + x, v0)
-      Up x -> (h0, v0 - x)
-      Down x -> (h0, v0 + x)
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-instructionsToSolutionHard :: [Instruction] -> Int
-instructionsToSolutionHard instructions = finalHorizontal * finalVertical
-  where
-    (finalHorizontal, finalVertical, _) = foldl f (0, 0, 0) instructions
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
 
-    f :: (Int, Int, Int) -> Instruction -> (Int, Int, Int)
-    f (h0, v0, aim0) instruction = case instruction of
-      Forward x -> (h0 + x, v0 + (aim0 * x), aim0)
-      Up x -> (h0, v0, aim0 - x)
-      Down x -> (h0, v0, aim0 + x)
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

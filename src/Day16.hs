@@ -1,153 +1,108 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Day16 where
 
-import Text.Megaparsec (ParsecT, some, single, choice, anySingle, count, runParserT, MonadParsec (eof, try), (<|>), many)
-import Text.Megaparsec.Char (hexDigitChar)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Data.Text (Text, pack)
-import Utils (Bit (..), parseLinesFromFile, parseHexadecimal, parseHexChar, bitsToDecimal8, bitsToDecimal64, parseFile)
-import Control.Monad.Logger (MonadLogger, logErrorN, runStdoutLoggingT, logDebugN)
-import Control.Monad.Trans.Maybe (MaybeT (runMaybeT))
-import Control.Monad (mzero, forM, replicateM, when, forM_)
-import Data.Word (Word8, Word64)
-import Control.Monad.Cont (lift)
-import Control.Monad.Extra (concatMapM)
+import Data.Text (Text)
 
-d16ES :: IO (Maybe Int)
-d16ES = solveDay16Easy "inputs/day_16_small.txt"
+import Utils (parseFile)
 
-d16EB :: IO (Maybe Int)
-d16EB = solveDay16Easy "inputs/day_16_big.txt"
+dayNum :: Int
+dayNum = 16
 
-d16HS :: IO (Maybe Int)
-d16HS = solveDay16Hard "inputs/day_16_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d16HB :: IO (Maybe Int)
-d16HB = solveDay16Hard "inputs/day_16_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay16Easy :: String -> IO (Maybe Int)
-solveDay16Easy fp = runStdoutLoggingT $ do
-  hexLine <- parseFile parseHexadecimal fp
-  result <- runMaybeT $ do
-    bitLine <- concatMapM parseHexChar hexLine
-    packet <- parseBits bitLine
-    return $ sumPacketVersions packet
-  return (fromIntegral <$> result)
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay16Hard :: String -> IO (Maybe Int)
-solveDay16Hard fp = runStdoutLoggingT $ do
-  hexLine <- parseFile parseHexadecimal fp
-  result <- runMaybeT $ do
-    bitLine <- concatMapM parseHexChar hexLine
-    packet <- parseBits bitLine
-    calculatePacketValue packet
-  return (fromIntegral <$> result)
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-parseBits :: (MonadLogger m) => [Bit] -> MaybeT m PacketNode
-parseBits bits = do
-  result <- runParserT parsePacketNode "Utils.hs" bits
-  case result of
-    Left e -> logErrorN ("Failed to parse: " <> (pack . show $ e)) >> mzero
-    Right (packet, _) -> return packet
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-data PacketNode =
-  Literal Word8 Word64 |
-  Operator Word8 Word8 [PacketNode]
-  deriving (Show)
+-- type InputType = [LineType]
+-- type LineType = ()
 
-sumPacketVersions :: PacketNode -> Word64
-sumPacketVersions (Literal v _) = fromIntegral v
-sumPacketVersions (Operator v _ packets) = fromIntegral v +
-  sum (map sumPacketVersions packets)
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-calculatePacketValue :: MonadLogger m => PacketNode -> MaybeT m Word64
-calculatePacketValue (Literal _ x) = return x
-calculatePacketValue (Operator _ 0 packets) = sum <$> mapM calculatePacketValue packets
-calculatePacketValue (Operator _ 1 packets) = product <$> mapM calculatePacketValue packets
-calculatePacketValue (Operator _ 2 packets) = minimum <$> mapM calculatePacketValue packets
-calculatePacketValue (Operator _ 3 packets) = maximum <$> mapM calculatePacketValue packets
-calculatePacketValue (Operator _ 5 packets) = do
-  if length packets /= 2
-    then logErrorN "> operator '5' must have two packets!" >> mzero
-    else do
-      let [p1, p2] = packets
-      v1 <- calculatePacketValue p1
-      v2 <- calculatePacketValue p2
-      return (if v1 > v2 then 1 else 0)
-calculatePacketValue (Operator _ 6 packets) = do
-  if length packets /= 2
-    then logErrorN "< operator '6' must have two packets!" >> mzero
-    else do
-      let [p1, p2] = packets
-      v1 <- calculatePacketValue p1
-      v2 <- calculatePacketValue p2
-      return (if v1 < v2 then 1 else 0)
-calculatePacketValue (Operator _ 7 packets) = do
-  if length packets /= 2
-    then logErrorN "== operator '7' must have two packets!" >> mzero
-    else do
-      let [p1, p2] = packets
-      v1 <- calculatePacketValue p1
-      v2 <- calculatePacketValue p2
-      return (if v1 == v2 then 1 else 0)
-calculatePacketValue p = do
-  logErrorN ("Invalid packet! " <> (pack . show $ p))
-  mzero
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-parsePacketNode :: (MonadLogger m) => ParsecT Void [Bit] m (PacketNode, Word64)
-parsePacketNode = do
-  packetVersion <- parse3Bit
-  packetTypeId <- parse3Bit
-  if packetTypeId == 4
-    then do
-      (literalValue, literalBits) <- parseLiteral
-      return (Literal packetVersion literalValue, literalBits + 6)
-    else do
-      lengthTypeId <- parseBit
-      if lengthTypeId == One
-        then do
-          numberOfSubpackets <- bitsToDecimal64 <$> count 11 parseBit
-          (subPacketsWithLengths :: [(PacketNode, Word64)]) <- replicateM (fromIntegral numberOfSubpackets) parsePacketNode
-          let (subPackets :: [PacketNode], lengths :: [Word64]) = unzip subPacketsWithLengths
-          return (Operator packetVersion packetTypeId subPackets, sum lengths + 7 + 11)
-        else do
-          totalSubpacketsLength <- bitsToDecimal64 <$> count 15 parseBit
-          (subPackets, size) <- parseForPacketLength (fromIntegral totalSubpacketsLength) 0 []
-          return (Operator packetVersion packetTypeId subPackets, size + 7 + 15)
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-parseForPacketLength :: (MonadLogger m) => Int -> Word64 -> [PacketNode] -> ParsecT Void [Bit] m ([PacketNode], Word64)
-parseForPacketLength remainingBits accumBits prevPackets = if remainingBits <= 0
-  then do
-    if remainingBits < 0
-      then lift (logErrorN "Parsed too many bits!") >> mzero
-      else return (reverse prevPackets, accumBits)
-  else do
-    (newPacket, size) <- parsePacketNode
-    parseForPacketLength (remainingBits - fromIntegral size) (accumBits + size) (newPacket : prevPackets)
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
 
--- First result is the value, second is the number of bits parsed
-parseLiteral :: ParsecT Void [Bit] m (Word64, Word64)
-parseLiteral = parseLiteralTail [] 0
-  where
-    parseLiteralTail :: [Bit] -> Word64 -> ParsecT Void [Bit] m (Word64, Word64)
-    parseLiteralTail accumBits numBits = do
-      leadingBit <- parseBit
-      nextBits <- count 4 parseBit
-      let accum' = accumBits ++ nextBits
-      let numBits' = numBits + 5
-      if leadingBit == Zero
-        then return (bitsToDecimal64 accum', numBits')
-        else parseLiteralTail accum' numBits'
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
 
-parse3Bit :: ParsecT Void [Bit] m Word8
-parse3Bit = bitsToDecimal8 <$> count 3 parseBit
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
 
-parseBit :: ParsecT Void [Bit] m Bit
-parseBit = anySingle
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
 
-showBitList :: MonadLogger m => [Bit] -> m ()
-showBitList bits =
-  let txt = pack . show $ concatMap show bits
-  in  logDebugN txt
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

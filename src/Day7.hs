@@ -2,57 +2,107 @@
 
 module Day7 where
 
-import Text.Megaparsec ()
-import Text.Megaparsec.Char ()
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
 import Data.Text (Text)
-import Utils (parseFile, parseCSVInts, OccMap, incKey, emptyOcc)
-import qualified Data.Map as M
 
-d7ES :: IO (Maybe Int)
-d7ES = solveDay7Easy "inputs/day_7_small.txt"
+import Utils (parseFile)
 
-d7EB :: IO (Maybe Int)
-d7EB = solveDay7Easy "inputs/day_7_big.txt"
+dayNum :: Int
+dayNum = 7
 
-d7HS :: IO (Maybe Int)
-d7HS = solveDay7Hard "inputs/day_7_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d7HB :: IO (Maybe Int)
-d7HB = solveDay7Hard "inputs/day_7_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay7Easy :: String -> IO (Maybe Int)
-solveDay7Easy fp = do
-  inputs <- parseFile parseCSVInts fp
-  let occMap = foldl incKey emptyOcc inputs
-  return $ Just (solveWithEnergyFunction easyEnergyFunction occMap)
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay7Hard :: String -> IO (Maybe Int)
-solveDay7Hard fp = do
-  inputs <- parseFile parseCSVInts fp
-  let occMap = foldl incKey emptyOcc inputs
-  return $ Just (solveWithEnergyFunction hardEnergyFunction occMap)
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-solveWithEnergyFunction :: (Int -> Int -> Int) -> OccMap Int -> Int
-solveWithEnergyFunction energyFunction occMap = if M.null occMap then 0
-  else minimum allCosts
-  where
-    keys = M.keys occMap
-    (minIndex, maxIndex) = (minimum keys, maximum keys)
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-    allCosts = map (findCost energyFunction occMap) [minIndex..maxIndex]
+-- type InputType = [LineType]
+-- type LineType = ()
 
-findCost :: (Int -> Int -> Int) -> OccMap Int -> Int -> Int
-findCost energyFunction occMap index = M.foldrWithKey sumEnergy 0 occMap
-  where
-    sumEnergy :: Int -> Word -> Int -> Int
-    sumEnergy i numAtI prevCost = prevCost + (fromIntegral numAtI * energyFunction index i)
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-easyEnergyFunction :: Int -> Int -> Int
-easyEnergyFunction x y = abs (x - y)
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-hardEnergyFunction :: Int -> Int -> Int
-hardEnergyFunction x y = triangleNumber (abs (x - y))
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-triangleNumber :: Int -> Int
-triangleNumber n = n * (n + 1) `quot` 2
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
+
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

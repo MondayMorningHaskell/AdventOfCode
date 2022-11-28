@@ -1,102 +1,108 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Day3 where
 
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Data.Map (Map)
-import qualified Data.Map as M
-import Utils (readStringsFromFile, OccMap, incKey, binaryStringToDecimal, countWhere)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
+import Data.Void (Void)
+import Data.Text (Text)
 
-d3ES :: IO Int
-d3ES = solveDay3Easy "inputs/day_3_small.txt"
+import Utils (parseFile)
 
-d3EB :: IO Int
-d3EB = solveDay3Easy "inputs/day_3_big.txt"
+dayNum :: Int
+dayNum = 3
 
-d3HS :: IO Int
-d3HS = solveDay3Hard "inputs/day_3_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d3HB :: IO Int
-d3HB = solveDay3Hard "inputs/day_3_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay3Easy :: String -> IO Int
-solveDay3Easy fp = calculatePowerEasy <$> readStringsFromFile fp
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay3Hard :: String -> IO Int
-solveDay3Hard fp = do
-  inputs <- readStringsFromFile fp
-  calculatePowerHard inputs
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-calculatePowerEasy :: [String] -> Int
-calculatePowerEasy stringLines = binaryStringToDecimal gamma * binaryStringToDecimal epsilon
-  where
-    gamma = produceGamma occMap (length stringLines)
-    epsilon = produceEpsilonFromGamma gamma
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-    occMap :: OccMap Int
-    occMap = foldl processString M.empty stringLines
+-- type InputType = [LineType]
+-- type LineType = ()
 
-    processString :: OccMap Int -> String -> OccMap Int
-    processString prevMap inputLine = foldl processBit prevMap (zip [0,1..] inputLine)
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-    processBit :: OccMap Int -> (Int, Char) -> OccMap Int
-    processBit prevMap (index, char) = case char of
-      '1' -> incKey prevMap index
-      _ -> prevMap
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-produceGamma :: OccMap Int -> Int -> String
-produceGamma bitMap numStrings = map gammaChar [0..maxIndex]
-  where
-    maxIndex = fst $ M.findMax bitMap
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-    gammaChar :: Int -> Char
-    gammaChar i = case M.lookup i bitMap of
-      Nothing -> '0'
-      Just numberOf1s -> if numberOf1s > fromIntegral (numStrings `quot` 2)
-        then '1'
-        else '0'
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
 
-produceEpsilonFromGamma :: String -> String
-produceEpsilonFromGamma = map flipChar
-  where
-    flipChar '1' = '0'
-    flipChar _ = '1'
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
 
-calculatePowerHard :: (MonadIO m) => [String] -> m Int
-calculatePowerHard inputStrings = do
-  oxygenRating <- findRatingString True inputStrings
-  co2Rating <- findRatingString False inputStrings
-  return $ binaryStringToDecimal oxygenRating * binaryStringToDecimal co2Rating
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
 
-findRatingString :: forall m. (MonadIO m) => Bool -> [String] -> m String
-findRatingString shouldMatchMostCommon inputs = (inputs !!) <$> f indexMap
-  where
-    indexMap = zip [0,1..] inputs
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
 
-    f :: [(Int, String)] -> m Int
-    f [] = error "Nothing left"
-    f [(lastIndex, lastString)] = return lastIndex
-    f currentInputs = do
-      results <- filterByBitFrequency shouldMatchMostCommon currentInputs
-      f results
+-------------------- SOLUTION PATTERNS --------------------
 
-filterByBitFrequency :: (MonadIO m) => Bool -> [(Int, String)] -> m [(Int, String)]
-filterByBitFrequency _ [] = return []
-filterByBitFrequency _ [final] = return [final]
-filterByBitFrequency shouldMatchMostCommon inputs = do
-  let results = filter filterFunc inputs
-  return $ map tail' results
-  where
-    tail' (i, s) = (i, tail s)
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
 
-    numStrings = length inputs
+-- type FoldType = ()
 
-    numberOf1s :: Int
-    numberOf1s = countWhere (\(_, s) -> not (null s) && head s == '1') inputs
-    numberOf0s = numStrings - numberOf1s
-    mostCommon = if numberOf1s >= numberOf0s then '1' else '0'
-    filterFunc :: (Int, String) -> Bool
-    -- Should XOR this
-    filterFunc i@(_, thisString) =
-      (head thisString == mostCommon && shouldMatchMostCommon) ||
-      (head thisString /= mostCommon && not shouldMatchMostCommon)
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

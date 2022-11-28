@@ -2,93 +2,107 @@
 
 module Day11 where
 
-import Control.Monad (forM_)
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN)
-import Data.List (sort)
-import Data.List.Extra (groupOn)
-import Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HM
-import Data.HashSet (HashSet)
-import qualified Data.HashSet as HS
-import Data.Sequence (Seq)
-import qualified Data.Sequence as Seq
-import Text.Megaparsec ()
-import Text.Megaparsec.Char ()
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Data.Text (Text, pack, concat)
-import Utils (parseFile, parse2DDigitHashMap, Coord2, getNeighbors8)
+import Data.Text (Text)
 
-d11ES :: IO (Maybe Int)
-d11ES = solveDay11Easy "inputs/day_11_small.txt"
+import Utils (parseFile)
 
-d11EB :: IO (Maybe Int)
-d11EB = solveDay11Easy "inputs/day_11_big.txt"
+dayNum :: Int
+dayNum = 11
 
-d11HS :: IO (Maybe Int)
-d11HS = solveDay11Hard "inputs/day_11_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d11HB :: IO (Maybe Int)
-d11HB = solveDay11Hard "inputs/day_11_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay11Easy :: String -> IO (Maybe Int)
-solveDay11Easy fp = do
-  initialGrid <- parseFile parse2DDigitHashMap fp
-  (_, numFlashes) <- runStdoutLoggingT $ runStepCount 100 (initialGrid, 0)
-  return $ Just numFlashes
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay11Hard :: String -> IO (Maybe Int)
-solveDay11Hard fp = do
-  initialGrid <- parseFile parse2DDigitHashMap fp
-  firstAllFlash <- runStdoutLoggingT $ runTillAllFlash initialGrid 1
-  return $ Just firstAllFlash
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-type OGrid = HashMap Coord2 Int
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-runStepCount :: MonadLogger m => Int -> (OGrid, Int) -> m (OGrid, Int)
-runStepCount 0 results = return results
-runStepCount i (grid, prevFlashes) = do
-  (newGrid, flashCount, _) <- runStep grid
-  runStepCount (i - 1) (newGrid, flashCount + prevFlashes)
+-- type InputType = [LineType]
+-- type LineType = ()
 
-runTillAllFlash :: (MonadLogger m) => OGrid -> Int -> m Int
-runTillAllFlash inputGrid thisStep = do
-  (newGrid, _, allFlashed) <- runStep inputGrid
-  if allFlashed
-    then return thisStep
-    else runTillAllFlash newGrid (thisStep + 1)
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-runStep :: (MonadLogger m) => OGrid -> m (OGrid, Int, Bool)
-runStep inputGrid = do
-  (allFlashes, newGrid) <- processFlashes (HS.fromList initialFlashes) (Seq.fromList initialFlashes) incrementedGrid
-  let numFlashes = HS.size allFlashes
-  let finalGrid = foldl (\g c -> HM.insert c 0 g) newGrid allFlashes
-  return (finalGrid, numFlashes, numFlashes == HM.size inputGrid)
-  where
-    incrementedGrid = (+1) <$> inputGrid
-    initialFlashes = fst <$> filter (\(_, x) -> x >= 10) (HM.toList incrementedGrid)
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-processFlashes :: (MonadLogger m) => HashSet Coord2 -> Seq Coord2 -> OGrid -> m (HashSet Coord2, OGrid)
-processFlashes visited queue grid = case Seq.viewl queue of
-  Seq.EmptyL -> return (visited, grid)
-  top Seq.:< rest -> do
-    let allNeighbors = getNeighbors8 grid top
-        newGrid = foldl (\g c -> HM.insert c (g HM.! c + 1) g) grid allNeighbors
-        neighborsToAdd = filter shouldAdd allNeighbors
-        newVisited = foldl (flip HS.insert) visited neighborsToAdd
-        newQueue = foldl (Seq.|>) rest neighborsToAdd
-    processFlashes newVisited newQueue newGrid
-  where
-    shouldAdd :: Coord2 -> Bool
-    shouldAdd coord = grid HM.! coord >= 9 && not (HS.member coord visited)
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-logMap :: (MonadLogger m) => OGrid -> m ()
-logMap grid = do
-  logDebugN "Start Grid"
-  forM_ groupedEntries $ \row -> do
-    let asT = fmap (pack . show) (snd <$> row)
-    logDebugN (Data.Text.concat asT)
-  logDebugN "End Grid"
-  logDebugN ""
-  where
-    sortedEntries = sort $ HM.toList grid
-    groupedEntries = groupOn (fst . fst) sortedEntries
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
+
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

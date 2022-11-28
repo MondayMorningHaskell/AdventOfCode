@@ -1,90 +1,108 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 
 module Day5 where
 
-import Text.Megaparsec (ParsecT)
-import Data.Void
-import Data.Text (Text, pack)
-import Text.Megaparsec.Char (char, string, eol)
-import Utils (parsePositiveNumber, parseLinesFromFile, Coord2, OccMap, emptyOcc, incKey, countWhere)
 import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import qualified Data.Map as M
-import Control.Monad (forM_)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
+import Data.Void (Void)
+import Data.Text (Text)
 
-d5ES :: IO (Maybe Int)
-d5ES = solveDay5Easy "inputs/day_5_small.txt"
+import Utils (parseFile)
 
-d5EB :: IO (Maybe Int)
-d5EB = solveDay5Easy "inputs/day_5_big.txt"
+dayNum :: Int
+dayNum = 5
 
-d5HS :: IO (Maybe Int)
-d5HS = solveDay5Hard "inputs/day_5_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d5HB :: IO (Maybe Int)
-d5HB = solveDay5Hard "inputs/day_5_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-type Vent = (Coord2, Coord2)
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay5Easy :: String -> IO (Maybe Int)
-solveDay5Easy fp = do
-  inputs <- parseLinesFromFile parseTupleLine fp
-  runStdoutLoggingT $ solveEasy inputs
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-solveDay5Hard :: String -> IO (Maybe Int)
-solveDay5Hard fp = do
-  inputs <- parseLinesFromFile parseTupleLine fp
-  runStdoutLoggingT $ solveHard inputs
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-parseTupleLine :: (Monad m) => ParsecT Void Text m Vent
-parseTupleLine = do
-  x1 <- parsePositiveNumber
-  char ','
-  x2 <- parsePositiveNumber
-  string " -> "
-  y1 <- parsePositiveNumber
-  char ','
-  y2 <- parsePositiveNumber
-  return ((x1, x2), (y1, y2))
+-- type InputType = [LineType]
+-- type LineType = ()
 
-solveEasy :: (MonadLogger m) => [Vent] -> m (Maybe Int)
-solveEasy vents = do
-  ventMap <- buildVentMap (filter isHV vents)
-  Just <$> countDanger ventMap
-  where
-    isHV :: Vent -> Bool
-    isHV v = isHorizontalVent v || isVerticalVent v
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-solveHard :: (MonadLogger m) => [Vent] -> m (Maybe Int)
-solveHard vents = do
-  ventMap <- buildVentMap vents
-  Just <$> countDanger ventMap
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
 
-isVerticalVent :: Vent -> Bool
-isVerticalVent ((x1, y1), (x2, y2)) = x1 == x2
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
 
-isHorizontalVent :: Vent -> Bool
-isHorizontalVent ((x1, y1), (x2, y2)) = y1 == y2
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
 
-coordsInVent :: Vent -> [Coord2]
-coordsInVent v@((x1, y1), (x2, y2)) 
-  | isVerticalVent v = map (x1,) [(min y1 y2)..(max y1 y2)]
-  | isHorizontalVent v = map (,y1) [(min x1 x2)..(max x1 x2)]
-  | otherwise = 
-      let xsBase = [(min x1 x2)..(max x1 x2)]
-          ysBase = [(min y1 y2)..(max y1 y2)]
-          xs = if x1 < x2 then xsBase else reverse xsBase
-          ys = if y1 < y2 then ysBase else reverse ysBase
-      in  zip xs ys
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
 
-buildVentMap :: (MonadLogger m) => [Vent] -> m (OccMap Coord2)
-buildVentMap vents = return $ foldl foldVent emptyOcc vents
-  where
-    foldVent :: OccMap Coord2 -> Vent -> OccMap Coord2
-    foldVent prevMap v = foldl
-      incKey
-      prevMap
-      (coordsInVent v)
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
 
-countDanger :: (MonadLogger m) => OccMap Coord2 -> m Int
-countDanger ventMap = return $ countWhere (>= 2) (M.elems ventMap)
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

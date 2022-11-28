@@ -2,74 +2,107 @@
 
 module Day10 where
 
-import Text.Megaparsec ()
-import Text.Megaparsec.Char ()
-import Data.Either (partitionEithers)
-import Data.List (sort)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
 import Data.Text (Text)
-import Utils (readStringsFromFile)
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN)
 
-d10ES :: IO (Maybe Integer)
-d10ES = solveDay10Easy "inputs/day_10_small.txt"
+import Utils (parseFile)
 
-d10EB :: IO (Maybe Integer)
-d10EB = solveDay10Easy "inputs/day_10_big.txt"
+dayNum :: Int
+dayNum = 10
 
-d10HS :: IO (Maybe Integer)
-d10HS = solveDay10Hard "inputs/day_10_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d10HB :: IO (Maybe Integer)
-d10HB = solveDay10Hard "inputs/day_10_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay10Easy :: String -> IO (Maybe Integer)
-solveDay10Easy fp = do
-  inputs <- readStringsFromFile fp
-  (corruptedValues, _) <- runStdoutLoggingT $ do
-    results <- mapM processForCorruption inputs
-    return $ partitionEithers results
-  return $ Just (sum corruptedValues)
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay10Hard :: String -> IO (Maybe Integer)
-solveDay10Hard fp = do
-  inputs <- readStringsFromFile fp
-  (_, remainingStacks) <- runStdoutLoggingT $ do
-    results <- mapM processForCorruption inputs
-    return $ partitionEithers results
-  let finalScores = sort $ scoreStack <$> remainingStacks
-  return $ Just (finalScores !! (length finalScores `quot` 2))
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-scoreStack :: [Char] -> Integer
-scoreStack = foldl f 0
-  where
-    f :: Integer -> Char -> Integer
-    f prevScore c = 5 * prevScore + scoreChar2 c
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-processForCorruption :: MonadLogger m => String -> m (Either Integer [Char])
-processForCorruption input = processTail input []
-  where
-    -- processTail :: MonadLogger m => String -> [Char] -> m (Either Integer String)
-    processTail [] stack = return $ Right stack
-    processTail (topChar : rest) stack = case topChar of
-      '(' -> processTail rest (')' : stack)
-      '[' -> processTail rest (']' : stack)
-      '{' -> processTail rest ('}' : stack)
-      '<' -> processTail rest ('>' : stack)
-      other -> if null stack || head stack /= other
-        then return (Left . scoreChar $ other)
-        else processTail rest (tail stack)
+-- type InputType = [LineType]
+-- type LineType = ()
 
-scoreChar :: Char -> Integer
-scoreChar ')' = 3
-scoreChar ']' = 57
-scoreChar '}' = 1197
-scoreChar '>' = 25137
-scoreChar _ = 0
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-scoreChar2 :: Char -> Integer
-scoreChar2 ')' = 1
-scoreChar2 ']' = 2
-scoreChar2 '}' = 3
-scoreChar2 '>' = 4
-scoreChar2 _ = 0
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
+
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
+
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
+
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

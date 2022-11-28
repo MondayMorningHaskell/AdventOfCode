@@ -40,22 +40,42 @@ library:
     - extra
     - monad-logger
     - search-algorithms
-
-executables:
-  aoc:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - AdventOfCode
+  exposed-modules:
+    [ Day1
+    # , Day2
+    # , Day3
+    # , Day4
+    # , Day5
+    # , Day6
+    # , Day7
+    # , Day8
+    # , Day9
+    # , Day10
+    # , Day11
+    # , Day12
+    # , Day13
+    # , Day14
+    # , Day15
+    # , Day16
+    # , Day17
+    # , Day18
+    # , Day19
+    # , Day20
+    # , Day21
+    # , Day22
+    # , Day23
+    # , Day24
+    # , Day25
+    ]
+  other-modules:
+    [ Utils
+    ]
 
 tests:
-  AdventOfCode-test:
-    main:                Spec.hs
-    source-dirs:         test
+  test-2022:
+    main: TestAoC2022.hs
+    other-modules: []
+    source-dirs: test
     ghc-options:
     - -threaded
     - -rtsopts
@@ -74,25 +94,3 @@ tests:
     dependencies:
       - AdventOfCode
       - monad-logger
-
-  dijkstra-test:
-    main: DijkstraTest.hs
-    other-modules: []
-    source-dirs: test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - AdventOfCode
-
-  aoc-test:
-    main: AocTests.hs
-    other-modules: []
-    source-dirs: test
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
-    dependencies:
-      - AdventOfCode

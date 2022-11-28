@@ -2,73 +2,107 @@
 
 module Day9 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN)
-import Data.Array (Array)
-import qualified Data.Array as A
-import Data.HashSet (HashSet)
-import qualified Data.HashSet as HS
-import Data.List (sort)
-import Data.Sequence (Seq)
-import qualified Data.Sequence as Seq
-import Text.Megaparsec ()
-import Text.Megaparsec.Char ()
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
 import Data.Text (Text)
-import Utils (parse2DDigitArray, parseFile, Coord2, Grid2, getNeighborsAssoc, getAssocs)
 
-d9ES :: IO (Maybe Int)
-d9ES = solveDay9Easy "inputs/day_9_small.txt"
+import Utils (parseFile)
 
-d9EB :: IO (Maybe Int)
-d9EB = solveDay9Easy "inputs/day_9_big.txt"
+dayNum :: Int
+dayNum = 9
 
-d9HS :: IO (Maybe Int)
-d9HS = solveDay9Hard "inputs/day_9_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d9HB :: IO (Maybe Int)
-d9HB = solveDay9Hard "inputs/day_9_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay9Easy :: String -> IO (Maybe Int)
-solveDay9Easy fp = do
-  inputArray <- parseFile parse2DDigitArray fp
-  sinks <- runStdoutLoggingT $ findSinks inputArray
-  return $ Just $ sum ((+ 1) . snd <$> sinks)
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay9Hard :: String -> IO (Maybe Int)
-solveDay9Hard fp = do
-  inputArray <- parseFile parse2DDigitArray fp
-  basinSizes <- runStdoutLoggingT $ do
-    sinks <- runStdoutLoggingT $ findSinks inputArray
-    mapM (findBasinSize inputArray) (fst <$> sinks)
-  return $ Just (product (take 3 (reverse . sort $ basinSizes)))
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-findSinks :: (MonadLogger m) => Grid2 Int -> m [(Coord2, Int)]
-findSinks input = do
-  return $ getAssocs input sinks
-  where
-    sinks = filter (isSink input) (A.indices input)
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-isSink :: Grid2 Int -> Coord2 -> Bool
-isSink input coord = all isHigher neighbors
-  where
-    thisIndex = input A.! coord
-    neighbors = getNeighborsAssoc input coord
+-- type InputType = [LineType]
+-- type LineType = ()
 
-    isHigher :: (Coord2, Int) -> Bool
-    isHigher (_, val) = val > thisIndex
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
 
-findBasinSize :: (MonadLogger m) => Grid2 Int -> Coord2 -> m Int
-findBasinSize grid sink = findBasinSizeTail (Seq.singleton sink, HS.empty, 0)
-  where
-    findBasinSizeTail :: (MonadLogger m) => (Seq Coord2, HashSet Coord2, Int) -> m Int
-    findBasinSizeTail (queue, visited, count) = case Seq.viewl queue of
-      Seq.EmptyL -> return count
-      top Seq.:< rest -> if HS.member top visited
-        then findBasinSizeTail (rest, visited, count)
-        else do
-          let newVisited = HS.insert top visited
-              allNeighbors = getNeighborsAssoc grid top
-              neighborsInBasin = filter (\(_, val) -> val < 9) allNeighbors
-              unvisitedNeighbors = filter (\c -> not (HS.member c newVisited)) (fst <$> neighborsInBasin)
-              newQueue = foldl (Seq.|>) rest unvisitedNeighbors
-          findBasinSizeTail (newQueue, newVisited, count + 1)
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
+
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = undefined
+
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
+
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = undefined
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile

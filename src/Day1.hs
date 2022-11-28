@@ -1,31 +1,108 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Day1 where
 
-import Utils (readIntsFromFile, countWhere)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Text.Megaparsec (ParsecT, sepEndBy1)
+import Text.Megaparsec.Char (eol)
+import Data.Void (Void)
+import Data.Text (Text)
 
-d1ES :: IO Int
-d1ES = solveDay1Easy "inputs/day_1_small.txt"
+import Utils (parseFile)
 
-d1EB :: IO Int
-d1EB = solveDay1Easy "inputs/day_1_big.txt"
+dayNum :: Int
+dayNum = 1
 
-d1HS :: IO Int
-d1HS = solveDay1Hard "inputs/day_1_small.txt"
+-------------------- PUTTING IT TOGETHER --------------------
+solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputEasy input
+  findEasySolution result
 
-d1HB :: IO Int
-d1HB = solveDay1Hard "inputs/day_1_big.txt"
+solveHard :: FilePath -> IO (Maybe Int)
+solveHard fp = runStdoutLoggingT $ do
+  input <- parseFile parseInput fp
+  result <- processInputHard input
+  findHardSolution result
 
-solveDay1Easy :: String -> IO Int
-solveDay1Easy fp = findIncreases <$> readIntsFromFile fp
+-------------------- PARSING --------------------
+type InputType = ()
 
-solveDay1Hard :: String -> IO Int
-solveDay1Hard fp = findIncreases . build3Windows <$> readIntsFromFile fp
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  return ()
 
-findIncreases :: [Int] -> Int
-findIncreases [] = 0
-findIncreases depths = countWhere firstSmaller (zip depths (tail depths))
-  where
-    firstSmaller (x, y) = x < y
+-- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+-- parseInput =
+--   sepEndyBy1 parseLine eol
 
-build3Windows :: [Int] -> [Int]
-build3Windows inputs = if length inputs < 3 then []
-  else zipWith (+) (zipWith (+) inputs (drop 1 inputs)) (drop 2 inputs)
+-- type InputType = [LineType]
+-- type LineType = ()
+
+-- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+-- parseLine = return ()
+
+-------------------- SOLVING EASY --------------------
+type EasySolutionType = ()
+
+processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy _ = return ()
+
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
+findEasySolution _ = return Nothing
+
+-------------------- SOLVING HARD --------------------
+type HardSolutionType = EasySolutionType
+
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard _ = return ()
+
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
+findHardSolution _ = return Nothing
+
+-------------------- SOLUTION PATTERNS --------------------
+
+-- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+-- solveFold = foldM foldLine initialFoldV
+
+-- type FoldType = ()
+
+-- initialFoldV :: FoldType
+-- initialFoldV = undefined
+
+-- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+-- foldLine = undefined
+
+-- type StateType = ()
+
+-- initialStateV :: StateType
+-- initialStateV = ()
+
+-- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
+-- solveStateN 0 st = return st
+-- solveStateN n st = do
+--   st' <- evolveState st
+--   solveStateN (n - 1) st'
+
+-- evolveState :: (MonadLogger m) => StateType -> m StateType
+-- evolveState st = undefined
+
+-------------------- BOILERPLATE --------------------
+smallFile :: FilePath
+smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+largeFile :: FilePath
+largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+
+easySmall :: IO (Maybe Int)
+easySmall = solveEasy smallFile
+
+easyLarge :: IO (Maybe Int)
+easyLarge = solveEasy largeFile
+
+hardSmall :: IO (Maybe Int)
+hardSmall = solveHard smallFile
+
+hardLarge :: IO (Maybe Int)
+hardLarge = solveHard largeFile
