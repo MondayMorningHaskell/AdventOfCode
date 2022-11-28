@@ -34,8 +34,8 @@ solveDay8Easy fp = runStdoutLoggingT $ do
 
 solveDay8Hard :: String -> IO (Maybe Int)
 solveDay8Hard fp = runStdoutLoggingT $ do
-  inputCodes <- catMaybes <$> parseLinesFromFile parseInputLine fp
-  results <- runStdoutLoggingT $ runMaybeT (mapM decodeAllOutputs inputCodes)
+  codes <- catMaybes <$> parseLinesFromFile parseInputLine fp
+  results <- runMaybeT (mapM decodeAllOutputs codes)
   return $ fmap sum results
 
 data InputCode = InputCode
@@ -84,54 +84,49 @@ decodeString inputCodes output
 
 decode5 :: (MonadLogger m) => InputCode -> String -> MaybeT m Int
 decode5 ic output = do
-  ([_, _, _, c3, c4, c5, _, _, _, _], c01, c02, fourMinusOne) <- sortInputCodes ic
-  -- If both from c0 are present, it's a 3
+  (c01, c02, fourMinusOne) <- sortInputCodes ic
   if c01 `elem` output && c02 `elem` output
     then return 3
     else do
-      let onlyShared = (intersect fourMinusOne c3 `intersect` c4) `intersect` c5
-      if length onlyShared /= 1
-        then logErrorN ("Invalid 5 case; expected length 1 remainder: " <> pack onlyShared) >> mzero
-        -- If final character is present in output, it's a 5, else 2
-        else if head (delete (head onlyShared) fourMinusOne) `elem` output then return 5 else return 2
+      let [c21, c22] = fourMinusOne
+      if c21 `elem` output && c22 `elem` output
+        then return 5
+        else return 2
 
 decode6 :: (MonadLogger m) => InputCode -> String -> MaybeT m Int
 decode6 ic output = do
-  (_, c01, c02, fourMinusOne) <- sortInputCodes ic
-  -- If not both from c0 are present, it's a 6
+  (c01, c02, fourMinusOne) <- sortInputCodes ic
   if not (c01 `elem` output && c02 `elem` output)
     then return 6
     else do
-      -- If both of these characters are present in output, 9 else 0
-      if all (`elem` output) fourMinusOne then return 9 else return 0
+      let [c21, c22] = fourMinusOne
+      if c21 `elem` output && c22 `elem` output
+        then return 9
+        else return 0
 
 -- Return 1. Sorted code strings 2, 3. Chars for "1" and String for "fourMinusOne"
-sortInputCodes :: (MonadLogger m) => InputCode -> MaybeT m ([String], Char, Char, String)
+sortInputCodes :: (MonadLogger m) => InputCode -> MaybeT m (Char, Char, String)
 sortInputCodes ic@(InputCode c0 c1 c2 c3 c4 c5 c6 c7 c8 c9) = do
   if not validLengths
-    then logErrorN ("Invalid inputs: " <> (pack . show $ ic)) >> mzero
+    then logErrorN ("Invalid inputs") >> mzero
     else do
       let [sc01, sc02] = sc0
-      let fourMinusOne = delete sc02 (delete sc01 sc2)
-      return (sorted, sc01, sc02, fourMinusOne)
+          fourMinusOne = delete sc02 (delete sc01 sc2)
+      return (sc01, sc02, fourMinusOne)
   where
-    sorted@[sc0, sc1,sc2,sc3,sc4,sc5,sc6,sc7,sc8,sc9] = sortOn length [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9]
+    sorted@[sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9] = sortOn length [c0, c1, c2, c3, c4, c5, c6, c7, c8, c9]
     validLengths =
-      length sc0 == 2 && length sc1 == 3 && length sc2 == 4 &&
-      length sc3 == 5 && length sc4 == 5 && length sc5 == 5 &&
-      length sc6 == 6 && length sc7 == 6 && length sc8 == 6 &&
-      length sc9 == 7
+      length sc0 == 2 && length sc1 == 3 && length sc2 == 4
 
+-- be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb | fdgacbe cefdb cefbgd gcbe
 parseInputLine :: (MonadLogger m) => ParsecT Void Text m (Maybe (InputCode, OutputCode))
 parseInputLine = do
   screenCodes <- sepEndBy1 (some letterChar) hspace
   string "| "
   outputCodes <- sepEndBy1 (some letterChar) hspace
-  if length screenCodes /= 10 
-    then lift (logErrorN $ "Didn't find 10 screen codes: " <> intercalate ", " (pack <$> screenCodes)) >> return Nothing
-    else if length outputCodes /= 4
-      then lift (logErrorN $ "Didn't find 4 output codes: " <> intercalate ", " (pack <$> outputCodes)) >> return Nothing
-      else
-        let [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9] = screenCodes
-            [o1, o2, o3, o4] = outputCodes
-        in  return $ Just (InputCode s0 s1 s2 s3 s4 s5 s6 s7 s8 s9, OutputCode o1 o2 o3 o4)
+  if length screenCodes /= 10 || length outputCodes /= 4
+    then return Nothing
+    else
+      let [s0, s1, s2, s3, s4, s5, s6, s7, s8, s9] = screenCodes
+          [o0, o1, o2, o3] = outputCodes
+      in  return $ Just (InputCode s0 s1 s2 s3 s4 s5 s6 s7 s8 s9, OutputCode o0 o1 o2 o3)

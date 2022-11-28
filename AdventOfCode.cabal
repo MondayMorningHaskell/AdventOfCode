@@ -103,6 +103,7 @@ test-suite AdventOfCode-test
   main-is: Spec.hs
   other-modules:
       AocTests
+      AocUtilsTests
       DijkstraTest
       Paths_AdventOfCode
   hs-source-dirs:

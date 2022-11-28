@@ -69,19 +69,21 @@ runExpand decoderMap initialImage stepCount = do
     outsideBit = if decoderMap HM.! 0 == Zero || even stepCount then Zero else One
 
 expandImage :: (MonadLogger m) => DecoderMap -> ImageMap -> Bit -> m ImageMap
-expandImage decoderMap image outsideBit = foldM (processPixel decoderMap image outsideBit) HM.empty allCoords
+expandImage decoderMap image outsideBit = foldM
+  (processPixel decoderMap image outsideBit) HM.empty allCoords
   where
     (minRow, minCol) = minimum (HM.keys image)
     (maxRow, maxCol) = maximum (HM.keys image)
     newBounds = ((minRow - 1, minCol - 1), (maxRow + 1, maxCol + 1))
     allCoords = range newBounds
 
+
 processPixel :: (MonadLogger m) => DecoderMap -> ImageMap -> Bit -> ImageMap -> Coord2 -> m ImageMap
 processPixel decoderMap initialImage outsideBit newImage pixel = do
   let allNeighbors = getNeighbors8Unbounded pixel
       neighborBits = getBit <$> allNeighbors
   if length allNeighbors /= 8
-    then error "Must have 8 neighbors!"
+    then error "Must have 8 neighbors"
     else do
       let (first4, second4) = splitAt 4 neighborBits
           finalBits = first4 ++ (getBit pixel : second4)

@@ -64,7 +64,7 @@ expandPolymerLong numSteps starterCode pairMap = do
   let finalCharCountMap = foldl countChars M.empty (M.toList finalOccMap)
   let finalCounts = map quotRoundUp (M.toList finalCharCountMap)
   if null finalCounts
-    then logErrorN "Final Occurrence Map is empty!" >> return Nothing
+    then logErrorN "Final Occurence Map is empty" >> return Nothing
     else return $ Just $ fromIntegral (maximum finalCounts - minimum finalCounts)
   where
     buildMapF :: OccMapBig (Char, Char) -> String -> OccMapBig (Char, Char)
@@ -76,13 +76,13 @@ expandPolymerLong numSteps starterCode pairMap = do
     runStep prevMap _ = foldM runExpand M.empty (M.toList prevMap)
 
     runExpand :: (MonadLogger m) => OccMapBig (Char, Char) -> ((Char, Char), Integer) -> m (OccMapBig (Char, Char))
-    runExpand prevMap (code@(c1, c2), count) = case HM.lookup code pairMap of
+    runExpand prevMap (code@(c1,c2), count) = case HM.lookup code pairMap of
       Nothing -> logErrorN ("Missing Code: " <> pack [c1, c2]) >> return prevMap
       Just newChar -> do
         let first = (c1, newChar)
             second = (newChar, c2)
         return $ addKey (addKey prevMap first count) second count
-  
+
     countChars :: OccMapBig Char -> ((Char, Char), Integer) -> OccMapBig Char
     countChars prevMap ((c1, c2), count) = addKey (addKey prevMap c1 count) c2 count
 

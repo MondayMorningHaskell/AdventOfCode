@@ -109,8 +109,8 @@ parsePacketNode = do
       if lengthTypeId == One
         then do
           numberOfSubpackets <- bitsToDecimal64 <$> count 11 parseBit
-          subPacketsWithLengths <- replicateM (fromIntegral numberOfSubpackets) parsePacketNode
-          let (subPackets, lengths) = unzip subPacketsWithLengths
+          (subPacketsWithLengths :: [(PacketNode, Word64)]) <- replicateM (fromIntegral numberOfSubpackets) parsePacketNode
+          let (subPackets :: [PacketNode], lengths :: [Word64]) = unzip subPacketsWithLengths
           return (Operator packetVersion packetTypeId subPackets, sum lengths + 7 + 11)
         else do
           totalSubpacketsLength <- bitsToDecimal64 <$> count 15 parseBit
@@ -121,11 +121,11 @@ parseForPacketLength :: (MonadLogger m) => Int -> Word64 -> [PacketNode] -> Pars
 parseForPacketLength remainingBits accumBits prevPackets = if remainingBits <= 0
   then do
     if remainingBits < 0
-      then error "Failing"
+      then lift (logErrorN "Parsed too many bits!") >> mzero
       else return (reverse prevPackets, accumBits)
   else do
     (newPacket, size) <- parsePacketNode
-    parseForPacketLength (remainingBits - fromIntegral size) (accumBits + fromIntegral size) (newPacket : prevPackets)
+    parseForPacketLength (remainingBits - fromIntegral size) (accumBits + size) (newPacket : prevPackets)
 
 -- First result is the value, second is the number of bits parsed
 parseLiteral :: ParsecT Void [Bit] m (Word64, Word64)
