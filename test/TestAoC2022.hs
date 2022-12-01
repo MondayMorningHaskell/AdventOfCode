@@ -132,10 +132,10 @@ main = do
 --   day253 <- D25.hardSmall
 --   day254 <- D25.hardLarge
   defaultMain $ testGroup "Advent of Code Tests"
-    [ testCase "Day 1-1" $ day11 @?= Just 0
-    -- , testCase "Day 1-2" $ day12 @?= 1226
-    -- , testCase "Day 1-3" $ day13 @?= 5
-    -- , testCase "Day 1-4" $ day14 @?= 1252
+    [ testCase "Day 1-1" $ day11 @?= Just 24000
+    , testCase "Day 1-2" $ day12 @?= Just 68775
+    , testCase "Day 1-3" $ day13 @?= Just 45000
+    , testCase "Day 1-4" $ day14 @?= Just 1252
     -- , testCase "Day 2-1" $ day21 @?= Just 0
     -- , testCase "Day 2-2" $ day22 @?= 1226
     -- , testCase "Day 2-3" $ day23 @?= 5

@@ -2,13 +2,14 @@
 
 module Day1 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import Text.Megaparsec (ParsecT, sepEndBy1)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN)
+import Text.Megaparsec (ParsecT, sepEndBy1, some)
 import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
-import Utils (parseFile)
+import Utils (parseFile, parsePositiveNumber)
+import Data.List (sort)
 
 dayNum :: Int
 dayNum = 1
@@ -27,11 +28,17 @@ solveHard fp = runStdoutLoggingT $ do
   findHardSolution result
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = [[Int]]
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 parseInput =
-  return ()
+  sepEndBy1 parseIntLines eol
+  where
+    parseIntLines = some parseIntLine
+    parseIntLine = do
+      i <- parsePositiveNumber
+      eol
+      return i
 
 -- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 -- parseInput =
@@ -44,22 +51,22 @@ parseInput =
 -- parseLine = return ()
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = return ()
+processInputEasy intLists = return $ maximum (map sum intLists)
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
-findEasySolution _ = return Nothing
+findEasySolution i = return (Just i)
 
 -------------------- SOLVING HARD --------------------
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = return ()
+processInputHard intLists = return $ sum $ take 3 $ reverse $ sort (map sum intLists)
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
-findHardSolution _ = return Nothing
+findHardSolution i = return (Just i)
 
 -------------------- SOLUTION PATTERNS --------------------
 
@@ -93,7 +100,7 @@ smallFile :: FilePath
 smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
 
 largeFile :: FilePath
-largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+largeFile = "inputs_2022/day_" <> show dayNum <> "_large.txt"
 
 easySmall :: IO (Maybe Int)
 easySmall = solveEasy smallFile
