@@ -93,7 +93,7 @@ smallFile :: FilePath
 smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
 
 largeFile :: FilePath
-largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+largeFile = "inputs_2022/day_" <> show dayNum <> "_large.txt"
 
 easySmall :: IO (Maybe Int)
 easySmall = solveEasy smallFile
