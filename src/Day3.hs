@@ -2,13 +2,17 @@
 
 module Day3 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logErrorN)
+import Text.Megaparsec (ParsecT, sepEndBy1, some)
+import Text.Megaparsec.Char (eol, letterChar)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
 import Utils (parseFile)
+import Control.Monad (foldM)
+import Data.Char (isUpper, ord)
+import Data.List (nub)
+import Data.List.Split (chunksOf)
 
 dayNum :: Int
 dayNum = 3
@@ -17,62 +21,81 @@ dayNum = 3
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
-
-parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
+-- type InputType = ()
 
 -- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 -- parseInput =
---   sepEndyBy1 parseLine eol
+--   return ()
 
--- type InputType = [LineType]
--- type LineType = ()
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput = sepEndBy1 parseLine eol
 
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+type InputType = [LineType]
+type LineType = String
+
+parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+parseLine = some letterChar
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy = solveFold
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
 
 -------------------- SOLVING HARD --------------------
-type HardSolutionType = EasySolutionType
+type HardSolutionType = Int
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard allLines = foldM foldHard 0 (chunksOf 3 allLines)
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing
 
+foldHard :: (MonadLogger m) => Int -> [String] -> m Int
+foldHard prevScore [s1, s2, s3] = do
+  case all3 of
+    [c] -> logErrorN ("Found " <> (pack [c]) <> " with score " <> (pack . show $ scoreChar c)) >> return (prevScore + scoreChar c)
+    cs -> logErrorN ("Invalid chars in all 3 ! " <> (pack . show $ cs)) >> return prevScore
+  where
+    s1AndS2 = filter (`elem` s2) s1
+    all3 = nub $ filter (`elem` s3) s1AndS2
+foldHard prevScore inputs = logErrorN ("Invalid inputs (should be size 3) " <> (pack . show $ inputs)) >> return prevScore
+
 -------------------- SOLUTION PATTERNS --------------------
 
--- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
+solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+solveFold = foldM foldLine initialFoldV
 
--- type FoldType = ()
+type FoldType = Int
 
--- initialFoldV :: FoldType
--- initialFoldV = undefined
+initialFoldV :: FoldType
+initialFoldV = 0
 
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
+foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+foldLine prevScore inputLine = do
+  case charsInBoth of
+    [c] -> return (prevScore + scoreChar c)
+    cs -> logErrorN ("Invalid chars in both sides! " <> (pack . show $ cs)) >> return prevScore
+  where
+    compartmentSize = length inputLine `quot` 2
+    (firstHalf, secondHalf) = splitAt compartmentSize inputLine
+    charsInBoth = nub $ filter (`elem` secondHalf) firstHalf
+
+scoreChar :: Char -> Int
+scoreChar c = if isUpper c
+  then ord c - 38
+  else ord c - 96
 
 -- type StateType = ()
 
