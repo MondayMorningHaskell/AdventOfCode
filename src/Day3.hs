@@ -65,7 +65,7 @@ findHardSolution _ = return Nothing
 foldHard :: (MonadLogger m) => Int -> [String] -> m Int
 foldHard prevScore [s1, s2, s3] = do
   case all3 of
-    [c] -> logErrorN ("Found " <> (pack [c]) <> " with score " <> (pack . show $ scoreChar c)) >> return (prevScore + scoreChar c)
+    [c] -> return (prevScore + scoreChar c)
     cs -> logErrorN ("Invalid chars in all 3 ! " <> (pack . show $ cs)) >> return prevScore
   where
     s1AndS2 = filter (`elem` s2) s1

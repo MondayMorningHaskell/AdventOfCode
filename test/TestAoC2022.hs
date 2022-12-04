@@ -6,7 +6,7 @@ import Test.Tasty.HUnit ( testCase, (@?=) )
 import qualified Day1 as D1
 import qualified Day2 as D2
 import qualified Day3 as D3
--- import qualified Day4 as D4
+import qualified Day4 as D4
 -- import qualified Day5 as D5
 -- import qualified Day6 as D6
 -- import qualified Day7 as D7
@@ -43,10 +43,10 @@ main = do
   day32 <- D3.easyLarge
   day33 <- D3.hardSmall
   day34 <- D3.hardLarge
---   day41 <- D4.easySmall
---   day42 <- D4.easyLarge
---   day43 <- D4.hardSmall
---   day44 <- D4.hardLarge
+  day41 <- D4.easySmall
+  day42 <- D4.easyLarge
+  day43 <- D4.hardSmall
+  day44 <- D4.hardLarge
 --   day51 <- D5.easySmall
 --   day52 <- D5.easyLarge
 --   day53 <- D5.hardSmall
@@ -144,10 +144,10 @@ main = do
     , testCase "Day 3-2" $ day32 @?= Just 8018
     , testCase "Day 3-3" $ day33 @?= Just 70
     , testCase "Day 3-4" $ day34 @?= Just 2518
-    -- , testCase "Day 4-1" $ day41 @?= Just 0
-    -- , testCase "Day 4-2" $ day42 @?= Just 0
-    -- , testCase "Day 4-3" $ day43 @?= Just 0
-    -- , testCase "Day 4-4" $ day44 @?= Just 0
+    , testCase "Day 4-1" $ day41 @?= Just 2
+    , testCase "Day 4-2" $ day42 @?= Just 584
+    , testCase "Day 4-3" $ day43 @?= Just 4
+    , testCase "Day 4-4" $ day44 @?= Just 933
     -- , testCase "Day 5-1" $ day51 @?= Just 0
     -- , testCase "Day 5-2" $ day52 @?= Just 0
     -- , testCase "Day 5-3" $ day53 @?= Just 0

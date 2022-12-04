@@ -4,11 +4,12 @@ module Day4 where
 
 import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
 import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Text.Megaparsec.Char (eol, char)
 import Data.Void (Void)
 import Data.Text (Text)
 
-import Utils (parseFile)
+import Utils (parseFile, parsePositiveNumber)
+import Control.Monad (foldM)
 
 dayNum :: Int
 dayNum = 4
@@ -17,37 +18,43 @@ dayNum = 4
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
-
-parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
+-- type InputType = ()
 
 -- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 -- parseInput =
---   sepEndyBy1 parseLine eol
+--   return ()
 
--- type InputType = [LineType]
--- type LineType = ()
+parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
+parseInput =
+  sepEndBy1 parseLine eol
 
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+type InputType = [LineType]
+type LineType = ((Int, Int), (Int, Int))
+
+parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+parseLine = do
+  a1 <- parsePositiveNumber
+  char '-'
+  a2 <- parsePositiveNumber
+  char ','
+  b1 <- parsePositiveNumber
+  char '-'
+  b2 <- parsePositiveNumber
+  return ((a1, a2), (b1, b2))
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy = foldM foldLine initialFoldV
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
@@ -56,23 +63,40 @@ findEasySolution _ = return Nothing
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard = foldM foldPart2 0
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing
 
+foldPart2 :: (MonadLogger m) => Int -> LineType -> m Int
+foldPart2 prev range = if rangePartiallyContained range
+  then return $ prev + 1
+  else return prev
+
+rangePartiallyContained :: ((Int, Int), (Int, Int)) -> Bool
+rangePartiallyContained ((a1, a2), (b1, b2)) = if a1 <= b1
+  then b1 <= a2 
+  else a1 <= b2
+
 -------------------- SOLUTION PATTERNS --------------------
 
--- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
+solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
+solveFold = foldM foldLine initialFoldV
 
--- type FoldType = ()
+type FoldType = Int
 
--- initialFoldV :: FoldType
--- initialFoldV = undefined
+initialFoldV :: FoldType
+initialFoldV = 0
 
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
+foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+foldLine prev range = if rangeFullyContained range
+  then return $ prev + 1
+  else return prev
+
+rangeFullyContained :: ((Int, Int), (Int, Int)) -> Bool
+rangeFullyContained ((a1, a2), (b1, b2)) =
+  a1 <= b1 && a2 >= b2 ||
+  b1 <= a1 && a2 <= b2
 
 -- type StateType = ()
 
