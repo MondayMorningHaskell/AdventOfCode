@@ -71,7 +71,7 @@ parseCrateNumbers :: (MonadLogger m) => ParsecT Void Text m ()
 parseCrateNumbers = void $ some (digitChar <|> char ' ') >> eol
 
 parseCrateLine :: (MonadLogger m) => ParsecT Void Text m [Maybe Char]
-parseCrateLine = sepBy1 parseCrateChar (char ' ')
+parseCrateLine = sepEndBy1 parseCrateChar (char ' ')
 
 parseCrateChar :: (MonadLogger m) => ParsecT Void Text m (Maybe Char)
 parseCrateChar = crate <|> noCrate
@@ -137,16 +137,13 @@ type FoldType = CrateStacks
 -- initialFoldV = undefined
 
 foldLine :: (MonadLogger m) => FoldType -> Move -> m FoldType
-foldLine crateStacks (Move num src dst) = foldM move1 crateStacks (replicate num (src, dst))
-
-move1 :: (MonadLogger m) => CrateStacks -> (Int, Int) -> m CrateStacks
-move1 crateStacks (s, d) = do
-  let sourceStack = fromMaybe [] (HM.lookup s crateStacks)
-      destStack = fromMaybe [] (HM.lookup d crateStacks)
+foldLine crateStacks (Move num src dst) = do
+  let sourceStack = fromMaybe [] (HM.lookup src crateStacks)
+      destStack = fromMaybe [] (HM.lookup dst crateStacks)
   if null sourceStack
-    then logErrorN ("Tried to pull from empty stack: " <> (pack . show $ s)) >> return crateStacks
+    then logErrorN ("Tried to pull from empty stack: " <> (pack . show $ src)) >> return crateStacks
     else do
-      return $ HM.insert d (head sourceStack : destStack) (HM.insert s (tail sourceStack) crateStacks)
+      return $ HM.insert dst (reverse (take num sourceStack) ++ destStack) (HM.insert src (drop num sourceStack) crateStacks)
 
 -- type StateType = ()
 
