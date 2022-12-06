@@ -147,6 +147,13 @@ emptyOcc = M.empty
 incKey :: (Ord a, Integral i) => OccMapI a i -> a -> OccMapI a i
 incKey prevMap key = addKey prevMap key 1
 
+decKey :: (Ord a, Integral i) => OccMapI a i -> a -> OccMapI a i
+decKey prevMap key = case M.lookup key prevMap of
+  Nothing -> prevMap
+  Just 0 -> M.delete key prevMap
+  Just 1 -> M.delete key prevMap
+  Just x -> M.insert key (x - 1) prevMap
+
 addKey :: (Ord a, Integral i) => OccMapI a i -> a -> i -> OccMapI a i
 addKey prevMap key count = case M.lookup key prevMap of
     Nothing -> M.insert key count prevMap

@@ -2,13 +2,17 @@
 
 module Day6 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logErrorN)
+import Text.Megaparsec (ParsecT, sepEndBy1, some)
+import Text.Megaparsec.Char (eol, letterChar)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
+import qualified Data.Map as M
+import qualified Data.Set as S
+import qualified Data.Sequence as Seq
 
-import Utils (parseFile)
+import Utils (parseFile, OccMap, emptyOcc, incKey, decKey)
+import Control.Monad (foldM)
 
 dayNum :: Int
 dayNum = 6
@@ -17,25 +21,22 @@ dayNum = 6
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = String
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
+parseInput = some letterChar
 
 -- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 -- parseInput =
---   sepEndyBy1 parseLine eol
+--   sepEndBy1 parseLine eol
 
 -- type InputType = [LineType]
 -- type LineType = ()
@@ -44,10 +45,10 @@ parseInput =
 -- parseLine = return ()
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy = processChars 4
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
@@ -56,23 +57,31 @@ findEasySolution _ = return Nothing
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard = processChars 14
+
+processChars :: (MonadLogger m) => Int -> [Char] -> m Int
+processChars numCharsNeeded input = if length input < numCharsNeeded
+  then logErrorN "Not enough chars!" >> return maxBound
+  else do
+    let (firstChars, rest) = splitAt (numCharsNeeded - 1) input
+        seq = Seq.fromList firstChars
+        occ = foldl incKey emptyOcc firstChars
+    processTail numCharsNeeded (numCharsNeeded, seq, occ) rest
+
+processTail :: (MonadLogger m) => Int -> (Int, Seq.Seq Char, OccMap Char) -> [Char] -> m Int
+processTail _ _ [] = logErrorN "No remaining chars!" >> return maxBound
+processTail numCharsNeeded (count, seq, occ) (c : cs) = case Seq.viewl seq of
+  Seq.EmptyL -> logErrorN "Sequence is empty!" >> return maxBound
+  (first Seq.:< rest) -> do
+    let occ' = incKey occ c
+    if M.size occ' == numCharsNeeded
+      then return count
+      else processTail numCharsNeeded (count + 1, rest Seq.|> c, decKey occ' first) cs
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing
 
 -------------------- SOLUTION PATTERNS --------------------
-
--- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
-
--- type FoldType = ()
-
--- initialFoldV :: FoldType
--- initialFoldV = undefined
-
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
 
 -- type StateType = ()
 
