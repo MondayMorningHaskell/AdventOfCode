@@ -48,10 +48,12 @@ type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
 processInputEasy treeGrid = do
-  s1 <- foldM (countVisibleFromLeft treeGrid) S.empty rows
-  s2 <- foldM (countVisibleFromRight treeGrid) s1 rows
-  s3 <- foldM (countVisibleFromTop treeGrid) s2 cols
-  S.size <$> foldM (countVisibleFromBottom treeGrid) s3 cols
+  let columns = [0..(snd . snd . A.bounds $ treeGrid)]
+  s1 <- foldM (countVisibleHorizontal treeGrid columns) S.empty rows
+  s2 <- foldM (countVisibleHorizontal treeGrid (reverse columns)) s1 rows
+  let rows = [0..(fst . snd . A.bounds $ treeGrid)]
+  s3 <- foldM (countVisibleVertical treeGrid rows) s2 cols
+  S.size <$> foldM (countVisibleVertical treeGrid (reverse rows)) s3 cols
   where
     rows = [0..(fst . snd . A.bounds $ treeGrid)]
     cols = [0..(snd . snd . A.bounds $ treeGrid)]
@@ -59,37 +61,17 @@ processInputEasy treeGrid = do
 -- Create a set
 -- Fold through all the directions
 
-countVisibleFromLeft :: (MonadLogger m) => Grid2 Int -> S.Set Coord2 -> Int -> m (S.Set Coord2)
-countVisibleFromLeft treeGrid prev row = return $ fst $ foldl assessColumn (prev, -1) columns
+countVisibleHorizontal :: (MonadLogger m) => Grid2 Int -> [Int] -> S.Set Coord2 -> Int -> m (S.Set Coord2)
+countVisibleHorizontal treeGrid columns prev row = return $ fst $ foldl assessColumn (prev, -1) columns
   where
-    columns = [0..(snd . snd . A.bounds $ treeGrid)]
     assessColumn :: (S.Set Coord2, Int) -> Int -> (S.Set Coord2, Int)
     assessColumn (prevSet, highestSeen) col =
       let nextHeight = treeGrid A.! (row, col)
       in  if nextHeight > highestSeen then (S.insert (row, col) prevSet, nextHeight) else (prevSet, highestSeen)
 
-countVisibleFromRight :: (MonadLogger m) => Grid2 Int -> S.Set Coord2 -> Int -> m (S.Set Coord2)
-countVisibleFromRight treeGrid prev row = return $ fst $ foldl assessColumn (prev, -1) columns
+countVisibleVertical :: (MonadLogger m) => Grid2 Int -> [Int] -> S.Set Coord2 -> Int -> m (S.Set Coord2)
+countVisibleVertical treeGrid rows prev col = return $ fst $ foldl assessRow (prev, -1) rows
   where
-    columns = reverse [0..(snd . snd . A.bounds $ treeGrid)]
-    assessColumn :: (S.Set Coord2, Int) -> Int -> (S.Set Coord2, Int)
-    assessColumn (prevSet, highestSeen) col =
-      let nextHeight = treeGrid A.! (row, col)
-      in  if nextHeight > highestSeen then (S.insert (row, col) prevSet, nextHeight) else (prevSet, highestSeen)
-
-countVisibleFromTop :: (MonadLogger m) => Grid2 Int -> S.Set Coord2 -> Int -> m (S.Set Coord2)
-countVisibleFromTop treeGrid prev col = return $ fst $ foldl assessRow (prev, -1) rows
-  where
-    rows = [0..(fst . snd . A.bounds $ treeGrid)]
-    assessRow :: (S.Set Coord2, Int) -> Int -> (S.Set Coord2, Int)
-    assessRow (prevSet, highestSeen) row =
-      let nextHeight = treeGrid A.! (row, col)
-      in  if nextHeight > highestSeen then (S.insert (row, col) prevSet, nextHeight) else (prevSet, highestSeen)
-
-countVisibleFromBottom :: (MonadLogger m) => Grid2 Int -> S.Set Coord2 -> Int -> m (S.Set Coord2)
-countVisibleFromBottom treeGrid prev col = return $ fst $ foldl assessRow (prev, -1) rows
-  where
-    rows = reverse [0..(fst . snd . A.bounds $ treeGrid)]
     assessRow :: (S.Set Coord2, Int) -> Int -> (S.Set Coord2, Int)
     assessRow (prevSet, highestSeen) row =
       let nextHeight = treeGrid A.! (row, col)
