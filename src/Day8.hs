@@ -48,18 +48,12 @@ type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
 processInputEasy treeGrid = do
-  let columns = [0..(snd . snd . A.bounds $ treeGrid)]
-  s1 <- foldM (countVisibleHorizontal treeGrid columns) S.empty rows
-  s2 <- foldM (countVisibleHorizontal treeGrid (reverse columns)) s1 rows
   let rows = [0..(fst . snd . A.bounds $ treeGrid)]
+  let cols = [0..(snd . snd . A.bounds $ treeGrid)]
+  s1 <- foldM (countVisibleHorizontal treeGrid cols) S.empty rows
+  s2 <- foldM (countVisibleHorizontal treeGrid (reverse cols)) s1 rows
   s3 <- foldM (countVisibleVertical treeGrid rows) s2 cols
   S.size <$> foldM (countVisibleVertical treeGrid (reverse rows)) s3 cols
-  where
-    rows = [0..(fst . snd . A.bounds $ treeGrid)]
-    cols = [0..(snd . snd . A.bounds $ treeGrid)]
--- List all the directions
--- Create a set
--- Fold through all the directions
 
 countVisibleHorizontal :: (MonadLogger m) => Grid2 Int -> [Int] -> S.Set Coord2 -> Int -> m (S.Set Coord2)
 countVisibleHorizontal treeGrid columns prev row = return $ fst $ foldl assessColumn (prev, -1) columns
