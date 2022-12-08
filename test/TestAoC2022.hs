@@ -10,7 +10,7 @@ import qualified Day4 as D4
 import qualified Day5 as D5
 import qualified Day6 as D6
 import qualified Day7 as D7
--- import qualified Day8 as D8
+import qualified Day8 as D8
 -- import qualified Day9 as D9
 -- import qualified Day10 as D10
 -- import qualified Day11 as D11
@@ -59,10 +59,10 @@ main = do
   day72 <- D7.easyLarge
   day73 <- D7.hardSmall
   day74 <- D7.hardLarge
---   day81 <- D8.easySmall
---   day82 <- D8.easyLarge
---   day83 <- D8.hardSmall
---   day84 <- D8.hardLarge
+  day81 <- D8.easySmall
+  day82 <- D8.easyLarge
+  day83 <- D8.hardSmall
+  day84 <- D8.hardLarge
 --   day91 <- D9.easySmall
 --   day92 <- D9.easyLarge
 --   day93 <- D9.hardSmall
@@ -160,10 +160,10 @@ main = do
     , testCase "Day 7-2" $ day72 @?= Just 1908462
     , testCase "Day 7-3" $ day73 @?= Just 24933642
     , testCase "Day 7-4" $ day74 @?= Just 3979145
-    -- , testCase "Day 8-1" $ day81 @?= Just 0
-    -- , testCase "Day 8-2" $ day82 @?= Just 0
-    -- , testCase "Day 8-3" $ day83 @?= Just 0
-    -- , testCase "Day 8-4" $ day84 @?= Just 0
+    , testCase "Day 8-1" $ day81 @?= Just 21
+    , testCase "Day 8-2" $ day82 @?= Just 1647
+    , testCase "Day 8-3" $ day83 @?= Just 8
+    , testCase "Day 8-4" $ day84 @?= Just 392080
     -- , testCase "Day 9-1" $ day91 @?= Just 0
     -- , testCase "Day 9-2" $ day92 @?= Just 0
     -- , testCase "Day 9-3" $ day93 @?= Just 0
