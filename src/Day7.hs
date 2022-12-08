@@ -45,7 +45,7 @@ parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 parseInput = sepEndBy1 parseLine eol
 
 parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
-parseLine = try parseCD <|> try parseLS <|> try parseDir <|> parseFile
+parseLine = parseCD <|> parseLS <|> parseDir <|> parseFile
   where
     parseCD = do
       string "$ cd "
@@ -91,11 +91,6 @@ findHardSolution dirMap = do
 solveFold :: (MonadLogger m) => [LineType] -> m FSState
 solveFold = foldM foldLine initialFoldV
 
-data FSFile = FSFile
-  { fsFileSize :: Integer
-  , fsFileName :: String
-  }
-
 data FSState = FSState
   { currentDirectory :: [String]
   , directoryMap :: OccMapBig [String]
@@ -105,17 +100,17 @@ initialFoldV :: FSState
 initialFoldV = FSState [] M.empty
 
 foldLine :: (MonadLogger m) => FSState -> LineType -> m FSState
-foldLine prevState command = do
-  case command of
-    ChangeDirectoryCommand dir -> if dir == ".."
-      then return $ prevState { currentDirectory = tail (currentDirectory prevState)}
+foldLine prevState command = case command of
+  ChangeDirectoryCommand dir -> if dir == ".."
+    then return $ prevState { currentDirectory = tail (currentDirectory prevState)}
+    else if dir == "/"
+      then return $ prevState { currentDirectory = ["/"]}
       else return $ prevState { currentDirectory = dir : currentDirectory prevState}
-    ListDirectoryCommand -> return prevState
-    ListedDirectory newDirName -> return prevState
-    ListedFile size _ -> do
-      let allDirs = currentDirectory prevState
-      let newDirMap = foldl (\mp d -> addKey mp d size) (directoryMap prevState) (init $ tails allDirs)
-      return $ prevState { directoryMap = newDirMap}
+  ListedFile size _ -> do
+    let allDirs = currentDirectory prevState
+    let newDirMap = foldl (\mp d -> addKey mp d size) (directoryMap prevState) (init $ tails allDirs)
+    return $ prevState { directoryMap = newDirMap}
+  _ -> return prevState
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
