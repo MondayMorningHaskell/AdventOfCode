@@ -78,6 +78,14 @@ runParserDebugLines parser inputs = do
     Left e -> logDebugN "Error: " >> error (show e)
     Right x -> logDebugN (pack . show $ x) >> return x
 
+parseSignedInteger :: (Monad m) => ParsecT Void Text m Int
+parseSignedInteger = parsePositiveNumber <|> parseNegativeNumber
+
+parseNegativeNumber :: (Monad m) => ParsecT Void Text m Int
+parseNegativeNumber = do
+  char '-'
+  ((-1) *) <$> parsePositiveNumber
+
 parsePositiveNumber :: (Monad m) => ParsecT Void Text m Int
 parsePositiveNumber = read <$> some digitChar
 

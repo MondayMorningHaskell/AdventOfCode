@@ -12,7 +12,7 @@ import qualified Day6 as D6
 import qualified Day7 as D7
 import qualified Day8 as D8
 import qualified Day9 as D9
--- import qualified Day10 as D10
+import qualified Day10 as D10
 -- import qualified Day11 as D11
 -- import qualified Day12 as D12
 -- import qualified Day13 as D13
@@ -67,10 +67,10 @@ main = do
   day92 <- D9.easyLarge
   day93 <- D9.hardSmall
   day94 <- D9.hardLarge
---   day101 <- D10.easySmall
---   day102 <- D10.easyLarge
---   day103 <- D10.hardSmall
---   day104 <- D10.hardLarge
+  day101 <- D10.easySmall
+  day102 <- D10.easyLarge
+  day103 <- D10.hardSmall
+  day104 <- D10.hardLarge
 --   day111 <- D11.easySmall
 --   day112 <- D11.easyLarge
 --   day113 <- D11.hardSmall
@@ -168,10 +168,10 @@ main = do
     , testCase "Day 9-2" $ day92 @?= Just 6098
     , testCase "Day 9-3" $ day93 @?= Just 1
     , testCase "Day 9-4" $ day94 @?= Just 2597
-    -- , testCase "Day 10-1" $ day101 @?= Just 0
-    -- , testCase "Day 10-2" $ day102 @?= Just 0
-    -- , testCase "Day 10-3" $ day103 @?= Just 0
-    -- , testCase "Day 10-4" $ day104 @?= Just 0
+    , testCase "Day 10-1" $ day101 @?= Just 13140
+    , testCase "Day 10-2" $ day102 @?= Just 13440
+    , testCase "Day 10-3" $ day103 @?= Just day10Hard1
+    , testCase "Day 10-4" $ day104 @?= Just day10Hard2
     -- , testCase "Day 11-1" $ day111 @?= Just 0
     -- , testCase "Day 11-2" $ day112 @?= Just 0
     -- , testCase "Day 11-3" $ day113 @?= Just 0
@@ -233,3 +233,23 @@ main = do
     -- , testCase "Day 25-3" $ day253 @?= Just 0
     -- , testCase "Day 25-4" $ day254 @?= Just 0
     ]
+
+day10Hard1 :: String
+day10Hard1 = concat
+  [ "##..##..##..##..##..##..##..##..##..##.."
+  , "###...###...###...###...###...###...###."
+  , "####....####....####....####....####...."
+  , "#####.....#####.....#####.....#####....."
+  , "######......######......######......####"
+  , "#######.......#######.......#######....."
+  ]
+
+day10Hard2 :: String
+day10Hard2 = concat
+  [ "###..###..####..##..###...##..####..##.."
+  , "#..#.#..#....#.#..#.#..#.#..#....#.#..#."
+  , "#..#.###....#..#....#..#.#..#...#..#..#."
+  , "###..#..#..#...#.##.###..####..#...####."
+  , "#....#..#.#....#..#.#.#..#..#.#....#..#."
+  , "#....###..####..###.#..#.#..#.####.#..#."
+  ]

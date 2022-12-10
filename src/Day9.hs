@@ -19,7 +19,6 @@ dayNum = 9
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  logErrorN (pack . show $ input)
   Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
