@@ -61,6 +61,7 @@ type EasySolutionType = Int
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
 processInputEasy inputs = accumSignalStrength <$> foldM processInstruction initialMachineState inputs
 
+initialMachineState :: MachineState
 initialMachineState = MachineState 1 1 0 ""
 
 data MachineState = MachineState
@@ -82,11 +83,9 @@ processInstruction ms0 (Addx i) = do
 
 bumpCycle :: (MonadLogger m) => MachineState -> m MachineState
 bumpCycle (MachineState cNum regVal accumSignal render) = do
-  maybeAccum <- if HS.member cNum signalCycles
-    then do
-      -- logErrorN $ "Signal Cycle: " <> (pack . show $ cNum) <> " " <> (pack . show $ regVal * cNum)
-      return $ regVal * cNum
-    else return 0
+  let maybeAccum = if HS.member cNum signalCycles
+        then regVal * cNum
+        else 0
   let newChar = if ((cNum - 1) `mod` 40) `elem` [regVal - 1, regVal, regVal + 1] then '#' else '.'
   return $ MachineState (cNum + 1) regVal (accumSignal + maybeAccum) (newChar : render)
 
