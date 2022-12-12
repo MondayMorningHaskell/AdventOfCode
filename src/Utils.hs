@@ -14,7 +14,7 @@ import qualified Data.HashMap.Strict as HM
 import Data.Text (Text, pack)
 import Data.Void (Void)
 import Text.Megaparsec ( some, Parsec, sepBy, runParser, ParsecT, runParserT, someTill, MonadParsec (eof, try), sepEndBy1, sepBy1, (<|>), many )
-import Text.Megaparsec.Char ( digitChar, char, hspace, eol, hspace1, hexDigitChar )
+import Text.Megaparsec.Char ( digitChar, char, hspace, eol, hspace1, hexDigitChar, letterChar )
 import Control.Monad.Logger (MonadLogger, logDebugN, logErrorN)
 import Data.Functor (($>))
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -112,10 +112,13 @@ parseNumbers = parseNumbersTail []
       parseNumbersTail (newLine : prev) (rowsRemaining - 1)
 
 -- Only single digit numbers
+parse2DCharacterArray :: (Monad m) => ParsecT Void Text m (Grid2 Char)
+parse2DCharacterArray = digitsToArray <$> sepEndBy1 (some letterChar) eol
+
 parse2DDigitArray :: (Monad m) => ParsecT Void Text m (Grid2 Int)
 parse2DDigitArray = digitsToArray <$> sepEndBy1 parseDigitLine eol
 
-digitsToArray :: [[Int]] -> Grid2 Int
+digitsToArray :: [[a]] -> Grid2 a
 digitsToArray inputs = A.listArray ((0, 0), (length inputs - 1, length (head inputs) - 1)) (concat inputs)
 
 parseDigitLine :: ParsecT Void Text m [Int]
