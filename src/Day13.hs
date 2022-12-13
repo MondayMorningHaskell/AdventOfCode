@@ -2,13 +2,16 @@
 
 module Day13 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logErrorN)
+import Data.Functor ((<&>))
+import Text.Megaparsec (ParsecT, sepEndBy1, (<|>), sepBy1, sepBy)
+import Text.Megaparsec.Char (eol, char)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
-import Utils (parseFile)
+import Utils (parseFile, parsePositiveNumber)
+import Control.Monad
+import Data.List (sortBy, elemIndex)
 
 dayNum :: Int
 dayNum = 13
@@ -17,25 +20,45 @@ dayNum = 13
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = [(Packet, Packet)]
+
+data Packet =
+  IntPacket Int |
+  ListPacket [Packet]
+  deriving (Show, Eq)
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
+parseInput = sepEndBy1 parsePacketPair eol
+
+parsePacketPair :: (MonadLogger m) => ParsecT Void Text m (Packet, Packet)
+parsePacketPair = do
+  p1 <- parsePacket
+  eol
+  p2 <- parsePacket
+  eol
+  return (p1, p2)
+
+parsePacket :: (MonadLogger m) => ParsecT Void Text m Packet
+parsePacket = parseInt <|> parseList
+  where
+    parseInt = parsePositiveNumber <&> IntPacket
+    parseList = do
+      char '['
+      packets <- sepBy parsePacket (char ',')
+      char ']'
+      return $ ListPacket packets
 
 -- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 -- parseInput =
---   sepEndyBy1 parseLine eol
+--   sepEndBy1 parseLine eol
 
 -- type InputType = [LineType]
 -- type LineType = ()
@@ -44,10 +67,10 @@ parseInput =
 -- parseLine = return ()
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy inputs = foldM foldLine initialFoldV (zip [1,2..] inputs)
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
@@ -56,7 +79,18 @@ findEasySolution _ = return Nothing
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard inputs = do
+  let divider1 = ListPacket [ListPacket [IntPacket 2]]
+  let divider2 = ListPacket [ListPacket [IntPacket 6]]
+      newInputs = (divider1, divider2) : inputs
+      sortedPackets = sortBy evalPackets $ concat (pairToList <$> newInputs)
+      i1 = elemIndex divider1 sortedPackets
+      i2 = elemIndex divider2 sortedPackets
+  case (i1, i2) of
+    (Just index1, Just index2) -> return $ (index1 + 1) * (index2 + 1)
+    _ -> return (-1)
+  where
+    pairToList (a, b) = [a, b]
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing
@@ -64,15 +98,32 @@ findHardSolution _ = return Nothing
 -------------------- SOLUTION PATTERNS --------------------
 
 -- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
+-- solveFold = 
 
--- type FoldType = ()
+type FoldType = Int
 
--- initialFoldV :: FoldType
--- initialFoldV = undefined
+initialFoldV :: FoldType
+initialFoldV = 0
 
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
+foldLine :: (MonadLogger m) => FoldType -> (Int, (Packet, Packet)) -> m FoldType
+foldLine prev (index, (p1, p2)) = do
+  let rightOrder = evalPackets p1 p2
+  return $ if rightOrder == LT then prev + index else prev
+
+
+evalPackets :: Packet -> Packet -> Ordering
+evalPackets (IntPacket a) (IntPacket b) = compare a b
+evalPackets (IntPacket a) b@(ListPacket _) = evalPackets (ListPacket [IntPacket a])  b
+evalPackets a@(ListPacket _) (IntPacket b) = evalPackets a (ListPacket [IntPacket b])
+evalPackets (ListPacket packets1) (ListPacket packets2) = case (packets1, packets2) of
+  ([], []) -> EQ
+  ([], _) -> LT
+  (_, []) -> GT
+  (a : rest1, b : rest2) ->
+    let compareFirst = evalPackets a b
+    in  if compareFirst == EQ
+          then evalPackets (ListPacket rest1) (ListPacket rest2)
+          else compareFirst
 
 -- type StateType = ()
 
