@@ -28,6 +28,9 @@ type Coord2 = (Int, Int)
 type Coord2f = (Double, Double)
 type Grid2 a = Array Coord2 a
 
+manhattanDistance :: Coord2 -> Coord2 -> Int
+manhattanDistance (x1, y1) (x2, y2) = abs (x2 - x1) + abs (y2 - y1)
+
 isBounded :: Coord2 -> (Coord2, Coord2) -> Bool
 isBounded (x, y) ((mnX, mnY), (mxX, mxY)) =
   mnX <= x && x <= mxX && mnY <= y && y <= mxY
@@ -198,6 +201,14 @@ getNeighbors grid (row, col) = catMaybes [maybeUp, maybeDown, maybeLeft, maybeRi
     maybeDown = if row < maxRow then Just (row + 1, col) else Nothing
     maybeLeft = if col > 0 then Just (row, col - 1) else Nothing
     maybeRight = if col < maxCol then Just (row, col + 1) else Nothing
+
+getNeighbors4Unbounded :: Coord2 -> [Coord2]
+getNeighbors4Unbounded (x, y) =
+  [ (x + 1, y)
+  , (x, y + 1)
+  , (x - 1, y)
+  , (x, y - 1)
+  ]
 
 getNeighborsAssoc :: Grid2 a -> Coord2 -> [(Coord2, a)]
 getNeighborsAssoc grid coord = getAssocs grid (getNeighbors grid coord)
