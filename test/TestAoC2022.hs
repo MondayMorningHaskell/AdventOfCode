@@ -16,7 +16,7 @@ import qualified Day10 as D10
 import qualified Day11 as D11
 import qualified Day12 as D12
 import qualified Day13 as D13
--- import qualified Day14 as D14
+import qualified Day14 as D14
 -- import qualified Day15 as D15
 -- import qualified Day16 as D16
 -- import qualified Day17 as D17
@@ -32,61 +32,61 @@ import qualified Day13 as D13
 main :: IO ()
 main = do
   day11 <- D1.easySmall
-  day12 <- D1.easyLarge
-  day13 <- D1.hardSmall
-  day14 <- D1.hardLarge
-  day21 <- D2.easySmall
-  day22 <- D2.easyLarge
-  day23 <- D2.hardSmall
-  day24 <- D2.hardLarge
-  day31 <- D3.easySmall
-  day32 <- D3.easyLarge
-  day33 <- D3.hardSmall
-  day34 <- D3.hardLarge
-  day41 <- D4.easySmall
-  day42 <- D4.easyLarge
-  day43 <- D4.hardSmall
-  day44 <- D4.hardLarge
-  day51 <- D5.easySmall
-  day52 <- D5.easyLarge
-  day53 <- D5.hardSmall
-  day54 <- D5.hardLarge
-  day61 <- D6.easySmall
-  day62 <- D6.easyLarge
-  day63 <- D6.hardSmall
-  day64 <- D6.hardLarge
-  day71 <- D7.easySmall
-  day72 <- D7.easyLarge
-  day73 <- D7.hardSmall
-  day74 <- D7.hardLarge
-  day81 <- D8.easySmall
-  day82 <- D8.easyLarge
-  day83 <- D8.hardSmall
-  day84 <- D8.hardLarge
-  day91 <- D9.easySmall
-  day92 <- D9.easyLarge
-  day93 <- D9.hardSmall
-  day94 <- D9.hardLarge
-  day101 <- D10.easySmall
-  day102 <- D10.easyLarge
-  day103 <- D10.hardSmall
-  day104 <- D10.hardLarge
-  day111 <- D11.easySmall
-  day112 <- D11.easyLarge
-  day113 <- D11.hardSmall
-  day114 <- D11.hardLarge
-  day121 <- D12.easySmall
-  day122 <- D12.easyLarge
-  day123 <- D12.hardSmall
-  day124 <- D12.hardLarge
-  day131 <- D13.easySmall
-  day132 <- D13.easyLarge
-  day133 <- D13.hardSmall
-  day134 <- D13.hardLarge
---   day141 <- D14.easySmall
---   day142 <- D14.easyLarge
---   day143 <- D14.hardSmall
---   day144 <- D14.hardLarge
+  -- day12 <- D1.easyLarge
+  -- day13 <- D1.hardSmall
+  -- day14 <- D1.hardLarge
+  -- day21 <- D2.easySmall
+  -- day22 <- D2.easyLarge
+  -- day23 <- D2.hardSmall
+  -- day24 <- D2.hardLarge
+  -- day31 <- D3.easySmall
+  -- day32 <- D3.easyLarge
+  -- day33 <- D3.hardSmall
+  -- day34 <- D3.hardLarge
+  -- day41 <- D4.easySmall
+  -- day42 <- D4.easyLarge
+  -- day43 <- D4.hardSmall
+  -- day44 <- D4.hardLarge
+  -- day51 <- D5.easySmall
+  -- day52 <- D5.easyLarge
+  -- day53 <- D5.hardSmall
+  -- day54 <- D5.hardLarge
+  -- day61 <- D6.easySmall
+  -- day62 <- D6.easyLarge
+  -- day63 <- D6.hardSmall
+  -- day64 <- D6.hardLarge
+  -- day71 <- D7.easySmall
+  -- day72 <- D7.easyLarge
+  -- day73 <- D7.hardSmall
+  -- day74 <- D7.hardLarge
+  -- day81 <- D8.easySmall
+  -- day82 <- D8.easyLarge
+  -- day83 <- D8.hardSmall
+  -- day84 <- D8.hardLarge
+  -- day91 <- D9.easySmall
+  -- day92 <- D9.easyLarge
+  -- day93 <- D9.hardSmall
+  -- day94 <- D9.hardLarge
+  -- day101 <- D10.easySmall
+  -- day102 <- D10.easyLarge
+  -- day103 <- D10.hardSmall
+  -- day104 <- D10.hardLarge
+  -- day111 <- D11.easySmall
+  -- day112 <- D11.easyLarge
+  -- day113 <- D11.hardSmall
+  -- day114 <- D11.hardLarge
+  -- day121 <- D12.easySmall
+  -- day122 <- D12.easyLarge
+  -- day123 <- D12.hardSmall
+  -- day124 <- D12.hardLarge
+  -- day131 <- D13.easySmall
+  -- day132 <- D13.easyLarge
+  -- day133 <- D13.hardSmall
+  -- day134 <- D13.hardLarge
+  day141 <- D14.easySmall
+  day142 <- D14.easyLarge
+  day143 <- D14.hardSmall
+  day144 <- D14.hardLarge
 --   day151 <- D15.easySmall
 --   day152 <- D15.easyLarge
 --   day153 <- D15.hardSmall
@@ -133,61 +133,61 @@ main = do
 --   day254 <- D25.hardLarge
   defaultMain $ testGroup "Advent of Code Tests"
     [ testCase "Day 1-1" $ day11 @?= Just 24000
-    , testCase "Day 1-2" $ day12 @?= Just 68775
-    , testCase "Day 1-3" $ day13 @?= Just 45000
-    , testCase "Day 1-4" $ day14 @?= Just 202585
-    , testCase "Day 2-1" $ day21 @?= Just 15
-    , testCase "Day 2-2" $ day22 @?= Just 11449
-    , testCase "Day 2-3" $ day23 @?= Just 12
-    , testCase "Day 2-4" $ day24 @?= Just 13187
-    , testCase "Day 3-1" $ day31 @?= Just 157
-    , testCase "Day 3-2" $ day32 @?= Just 8018
-    , testCase "Day 3-3" $ day33 @?= Just 70
-    , testCase "Day 3-4" $ day34 @?= Just 2518
-    , testCase "Day 4-1" $ day41 @?= Just 2
-    , testCase "Day 4-2" $ day42 @?= Just 584
-    , testCase "Day 4-3" $ day43 @?= Just 4
-    , testCase "Day 4-4" $ day44 @?= Just 933
-    , testCase "Day 5-1" $ day51 @?= Just "CMZ"
-    , testCase "Day 5-2" $ day52 @?= Just "ZWHVFWQWW"
-    , testCase "Day 5-3" $ day53 @?= Just "MCD"
-    , testCase "Day 5-4" $ day54 @?= Just "HZFZCCWWV"
-    , testCase "Day 6-1" $ day61 @?= Just 7
-    , testCase "Day 6-2" $ day62 @?= Just 1655
-    , testCase "Day 6-3" $ day63 @?= Just 19
-    , testCase "Day 6-4" $ day64 @?= Just 2665
-    , testCase "Day 7-1" $ day71 @?= Just 95437
-    , testCase "Day 7-2" $ day72 @?= Just 1908462
-    , testCase "Day 7-3" $ day73 @?= Just 24933642
-    , testCase "Day 7-4" $ day74 @?= Just 3979145
-    , testCase "Day 8-1" $ day81 @?= Just 21
-    , testCase "Day 8-2" $ day82 @?= Just 1647
-    , testCase "Day 8-3" $ day83 @?= Just 8
-    , testCase "Day 8-4" $ day84 @?= Just 392080
-    , testCase "Day 9-1" $ day91 @?= Just 13
-    , testCase "Day 9-2" $ day92 @?= Just 6098
-    , testCase "Day 9-3" $ day93 @?= Just 1
-    , testCase "Day 9-4" $ day94 @?= Just 2597
-    , testCase "Day 10-1" $ day101 @?= Just 13140
-    , testCase "Day 10-2" $ day102 @?= Just 13440
-    , testCase "Day 10-3" $ day103 @?= Just day10Hard1
-    , testCase "Day 10-4" $ day104 @?= Just day10Hard2
-    , testCase "Day 11-1" $ day111 @?= Just 10605
-    , testCase "Day 11-2" $ day112 @?= Just 56350
-    , testCase "Day 11-3" $ day113 @?= Just 2713310158
-    , testCase "Day 11-4" $ day114 @?= Just 13954061248
-    , testCase "Day 12-1" $ day121 @?= Just 31
-    , testCase "Day 12-2" $ day122 @?= Just 449
-    , testCase "Day 12-3" $ day123 @?= Just 29
-    , testCase "Day 12-4" $ day124 @?= Just 443
-    , testCase "Day 13-1" $ day131 @?= Just 13
-    , testCase "Day 13-2" $ day132 @?= Just 5625
-    , testCase "Day 13-3" $ day133 @?= Just 140
-    , testCase "Day 13-4" $ day134 @?= Just 23111
-    -- , testCase "Day 14-1" $ day141 @?= Just 0
-    -- , testCase "Day 14-2" $ day142 @?= Just 0
-    -- , testCase "Day 14-3" $ day143 @?= Just 0
-    -- , testCase "Day 14-4" $ day144 @?= Just 0
+    -- , testCase "Day 1-2" $ day12 @?= Just 68775
+    -- , testCase "Day 1-3" $ day13 @?= Just 45000
+    -- , testCase "Day 1-4" $ day14 @?= Just 202585
+    -- , testCase "Day 2-1" $ day21 @?= Just 15
+    -- , testCase "Day 2-2" $ day22 @?= Just 11449
+    -- , testCase "Day 2-3" $ day23 @?= Just 12
+    -- , testCase "Day 2-4" $ day24 @?= Just 13187
+    -- , testCase "Day 3-1" $ day31 @?= Just 157
+    -- , testCase "Day 3-2" $ day32 @?= Just 8018
+    -- , testCase "Day 3-3" $ day33 @?= Just 70
+    -- , testCase "Day 3-4" $ day34 @?= Just 2518
+    -- , testCase "Day 4-1" $ day41 @?= Just 2
+    -- , testCase "Day 4-2" $ day42 @?= Just 584
+    -- , testCase "Day 4-3" $ day43 @?= Just 4
+    -- , testCase "Day 4-4" $ day44 @?= Just 933
+    -- , testCase "Day 5-1" $ day51 @?= Just "CMZ"
+    -- , testCase "Day 5-2" $ day52 @?= Just "ZWHVFWQWW"
+    -- , testCase "Day 5-3" $ day53 @?= Just "MCD"
+    -- , testCase "Day 5-4" $ day54 @?= Just "HZFZCCWWV"
+    -- , testCase "Day 6-1" $ day61 @?= Just 7
+    -- , testCase "Day 6-2" $ day62 @?= Just 1655
+    -- , testCase "Day 6-3" $ day63 @?= Just 19
+    -- , testCase "Day 6-4" $ day64 @?= Just 2665
+    -- , testCase "Day 7-1" $ day71 @?= Just 95437
+    -- , testCase "Day 7-2" $ day72 @?= Just 1908462
+    -- , testCase "Day 7-3" $ day73 @?= Just 24933642
+    -- , testCase "Day 7-4" $ day74 @?= Just 3979145
+    -- , testCase "Day 8-1" $ day81 @?= Just 21
+    -- , testCase "Day 8-2" $ day82 @?= Just 1647
+    -- , testCase "Day 8-3" $ day83 @?= Just 8
+    -- , testCase "Day 8-4" $ day84 @?= Just 392080
+    -- , testCase "Day 9-1" $ day91 @?= Just 13
+    -- , testCase "Day 9-2" $ day92 @?= Just 6098
+    -- , testCase "Day 9-3" $ day93 @?= Just 1
+    -- , testCase "Day 9-4" $ day94 @?= Just 2597
+    -- , testCase "Day 10-1" $ day101 @?= Just 13140
+    -- , testCase "Day 10-2" $ day102 @?= Just 13440
+    -- , testCase "Day 10-3" $ day103 @?= Just day10Hard1
+    -- , testCase "Day 10-4" $ day104 @?= Just day10Hard2
+    -- , testCase "Day 11-1" $ day111 @?= Just 10605
+    -- , testCase "Day 11-2" $ day112 @?= Just 56350
+    -- , testCase "Day 11-3" $ day113 @?= Just 2713310158
+    -- , testCase "Day 11-4" $ day114 @?= Just 13954061248
+    -- , testCase "Day 12-1" $ day121 @?= Just 31
+    -- , testCase "Day 12-2" $ day122 @?= Just 449
+    -- , testCase "Day 12-3" $ day123 @?= Just 29
+    -- , testCase "Day 12-4" $ day124 @?= Just 443
+    -- , testCase "Day 13-1" $ day131 @?= Just 13
+    -- , testCase "Day 13-2" $ day132 @?= Just 5625
+    -- , testCase "Day 13-3" $ day133 @?= Just 140
+    -- , testCase "Day 13-4" $ day134 @?= Just 23111
+    , testCase "Day 14-1" $ day141 @?= Just 24
+    , testCase "Day 14-2" $ day142 @?= Just 858
+    , testCase "Day 14-3" $ day143 @?= Just 93
+    , testCase "Day 14-4" $ day144 @?= Just 26845
     -- , testCase "Day 15-1" $ day151 @?= Just 0
     -- , testCase "Day 15-2" $ day152 @?= Just 0
     -- , testCase "Day 15-3" $ day153 @?= Just 0

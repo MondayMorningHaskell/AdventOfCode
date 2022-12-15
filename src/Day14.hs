@@ -1,14 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 
 module Day14 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logErrorN)
+import Text.Megaparsec (ParsecT, sepEndBy1, sepBy1)
+import Text.Megaparsec.Char (eol, string, char)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
-import Utils (parseFile)
+import Utils (parseFile, Coord2, parsePositiveNumber)
+import qualified Data.HashSet as HS
+import Data.List (sort)
+import Control.Monad (foldM)
+import Control.Monad.Cont (lift)
 
 dayNum :: Int
 dayNum = 14
@@ -17,37 +22,59 @@ dayNum = 14
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = HS.HashSet Coord2
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
+parseInput = do
+  coordLines <- sepEndBy1 parseLine eol
+  lift $ buildInitialMap coordLines
+
+buildInitialMap :: (MonadLogger m) => [[Coord2]] -> m (HS.HashSet Coord2)
+buildInitialMap = foldM f HS.empty
+  where
+    f :: (MonadLogger m) => HS.HashSet Coord2 -> [Coord2] -> m (HS.HashSet Coord2)
+    f prevSet [] = return prevSet
+    f prevSet [_] = return prevSet
+    f prevSet (firstCoord : secondCoord : rest) = do
+      newCoords <- makeLine firstCoord secondCoord
+      f (foldl (flip HS.insert) prevSet newCoords) (secondCoord : rest)
+
+    makeLine :: (MonadLogger m) => Coord2 -> Coord2 -> m [Coord2]
+    makeLine a@(a1, a2) b@(b1, b2) 
+      | a1 == b1 = return $ map (a1,) (if a2 >= b2 then [b2,(b2+1)..a2] else [a2,(a2+1)..b2])
+      | a2 == b2 = return $ map (,b2) (if a1 >= b1 then [b1,(b1+1)..a1] else [a1,(a1+1)..b1])
+      | otherwise = logErrorN ("Line is neither horizontal nor vertical: " <> (pack . show $ (a, b))) >> return []
 
 -- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 -- parseInput =
---   sepEndyBy1 parseLine eol
 
 -- type InputType = [LineType]
 -- type LineType = ()
 
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+parseLine :: Monad m => ParsecT Void Text m [Coord2]
+parseLine = sepBy1 parseNumbers (string " -> ")
+  where
+    parseNumbers = do
+      i <- parsePositiveNumber 
+      char ','
+      j <- parsePositiveNumber
+      return (i, j)
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy inputWalls = do
+  let maxY = maximum $ snd <$> HS.toList inputWalls
+  evolveState maxY (inputWalls, 0)
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
@@ -56,7 +83,9 @@ findEasySolution _ = return Nothing
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard inputWalls = do
+  let maxY = maximum $ snd <$> HS.toList inputWalls
+  evolveState' maxY (inputWalls, 0)
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing
@@ -74,19 +103,35 @@ findHardSolution _ = return Nothing
 -- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
 -- foldLine = undefined
 
--- type StateType = ()
+evolveState :: (MonadLogger m) => Int -> (HS.HashSet Coord2, Int) -> m Int
+evolveState maxY (filledSpaces, prevSands) = do
+  (newSet, landed) <- dropSand maxY (500, 0) filledSpaces
+  if landed
+    then evolveState maxY (newSet, prevSands + 1)
+    else return prevSands
 
--- initialStateV :: StateType
--- initialStateV = ()
+dropSand :: (MonadLogger m) => Int -> Coord2 -> HS.HashSet Coord2 -> m (HS.HashSet Coord2, Bool)
+dropSand maxY (x, y) filledSpaces
+  | y > maxY = return (filledSpaces, False)
+  | not (HS.member (x, y + 1) filledSpaces) = dropSand maxY (x, y + 1) filledSpaces
+  | not (HS.member (x - 1, y + 1) filledSpaces) = dropSand maxY (x - 1, y + 1) filledSpaces
+  | not (HS.member (x + 1, y + 1) filledSpaces) = dropSand maxY (x + 1, y + 1) filledSpaces
+  | otherwise = return (HS.insert (x, y) filledSpaces, True)
 
--- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
--- solveStateN 0 st = return st
--- solveStateN n st = do
---   st' <- evolveState st
---   solveStateN (n - 1) st'
+evolveState' :: (MonadLogger m) => Int -> (HS.HashSet Coord2, Int) -> m Int
+evolveState' maxY (filledSpaces, prevSands) = do
+  (newSet, landed) <- dropSand' maxY (500, 0) filledSpaces
+  if landed
+    then evolveState' maxY (newSet, prevSands + 1)
+    else return (prevSands + 1)
 
--- evolveState :: (MonadLogger m) => StateType -> m StateType
--- evolveState st = undefined
+dropSand' :: (MonadLogger m) => Int -> Coord2 -> HS.HashSet Coord2 -> m (HS.HashSet Coord2, Bool)
+dropSand' maxY (x, y) filledSpaces
+  | y > maxY = return (HS.insert (x, y) filledSpaces, True)
+  | not (HS.member (x, y + 1) filledSpaces) = dropSand' maxY (x, y + 1) filledSpaces
+  | not (HS.member (x - 1, y + 1) filledSpaces) = dropSand' maxY (x - 1, y + 1) filledSpaces
+  | not (HS.member (x + 1, y + 1) filledSpaces) = dropSand' maxY (x + 1, y + 1) filledSpaces
+  | otherwise = return (HS.insert (x, y) filledSpaces, (x, y) /= (500, 0))
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
