@@ -54,10 +54,10 @@ parseLine = do
 type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> Int -> m EasySolutionType
-processInputEasy inputs size = do
-  resultingIntervals <- mapM (excludedCoords size) inputs
+processInputEasy inputs row = do
+  resultingIntervals <- mapM (excludedCoords row) inputs
   mergedIntervals <- mergeIntervals (catMaybes resultingIntervals)
-  let beacons = nub $ filter (\c@(_, y) -> y == size) (snd <$> inputs)
+  let beacons = nub $ filter (\c@(_, y) -> y == row) (snd <$> inputs)
   countIntervalsExcludingBeacons mergedIntervals (fst <$> beacons)
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
@@ -126,7 +126,7 @@ countIntervalsExcludingBeacons intervals beaconXs = countTail 0 intervals (sort 
     countTail accum ((next1, next2) : rest) [] = countTail (accum + (next2 - next1 + 1)) rest []
     countTail accum ints@((next1, next2) : restInts) beacons@(nextBeaconX : restBeacons)
       | nextBeaconX < next1 = countTail accum ints restBeacons
-      | nextBeaconX > next2 = countTail (accum + (next2 - next1)) restInts restBeacons
+      | nextBeaconX > next2 = countTail (accum + (next2 - next1 + 1)) restInts beacons
       | otherwise = countTail (accum - 1) ints restBeacons
 
 -------------------- BOILERPLATE --------------------

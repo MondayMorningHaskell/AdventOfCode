@@ -18,7 +18,7 @@ import qualified Day12 as D12
 import qualified Day13 as D13
 import qualified Day14 as D14
 import qualified Day15 as D15
--- import qualified Day16 as D16
+import qualified Day16 as D16
 -- import qualified Day17 as D17
 -- import qualified Day18 as D18
 -- import qualified Day19 as D19
@@ -87,14 +87,14 @@ main = do
   day142 <- D14.easyLarge
   day143 <- D14.hardSmall
   day144 <- D14.hardLarge
-  day151 <- D15.easySmall 10
-  day152 <- D15.easyLarge 2000000
-  day153 <- D15.hardSmall 20
-  day154 <- D15.hardLarge 4000000
---   day161 <- D16.easySmall
---   day162 <- D16.easyLarge
---   day163 <- D16.hardSmall
---   day164 <- D16.hardLarge
+  -- day151 <- D15.easySmall 10
+  -- day152 <- D15.easyLarge 2000000
+  -- day153 <- D15.hardSmall 20
+  -- day154 <- D15.hardLarge 4000000
+  -- day161 <- D16.easySmall
+  -- day162 <- D16.easyLarge
+  day163 <- D16.hardSmall
+  -- day164 <- D16.hardLarge
 --   day171 <- D17.easySmall
 --   day172 <- D17.easyLarge
 --   day173 <- D17.hardSmall
@@ -188,13 +188,13 @@ main = do
     , testCase "Day 14-2" $ day142 @?= Just 858
     , testCase "Day 14-3" $ day143 @?= Just 93
     , testCase "Day 14-4" $ day144 @?= Just 26845
-    , testCase "Day 15-1" $ day151 @?= Just 26
-    , testCase "Day 15-2" $ day152 @?= Just 5607466
-    , testCase "Day 15-3" $ day153 @?= Just 56000011
-    , testCase "Day 15-4" $ day154 @?= Just 12543202766584
-    -- , testCase "Day 16-1" $ day161 @?= Just 0
-    -- , testCase "Day 16-2" $ day162 @?= Just 0
-    -- , testCase "Day 16-3" $ day163 @?= Just 0
+    -- , testCase "Day 15-1" $ day151 @?= Just 26
+    -- , testCase "Day 15-2" $ day152 @?= Just 5607466
+    -- , testCase "Day 15-3" $ day153 @?= Just 56000011
+    -- , testCase "Day 15-4" $ day154 @?= Just 12543202766584
+    -- , testCase "Day 16-1" $ day161 @?= Just 1651
+    -- , testCase "Day 16-2" $ day162 @?= Just 1775
+    , testCase "Day 16-3" $ day163 @?= Just 1707
     -- , testCase "Day 16-4" $ day164 @?= Just 0
     -- , testCase "Day 17-1" $ day171 @?= Just 0
     -- , testCase "Day 17-2" $ day172 @?= Just 0
