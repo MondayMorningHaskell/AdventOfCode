@@ -12,9 +12,10 @@ import Data.Text (Text, pack)
 import Utils (parseFile, parsePositiveNumber)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
+import qualified Data.Set as Set
 import Algorithm.Search (dijkstraM, aStarM)
 import Data.Maybe (fromMaybe, mapMaybe)
-import Control.Monad (forM_)
+import Control.Monad (forM_, forM, foldM)
 
 dayNum :: Int
 dayNum = 16
@@ -34,17 +35,10 @@ solveHard fp = runStdoutLoggingT $ do
 -------------------- PARSING --------------------
 type InputType = (HM.HashMap String Int, HM.HashMap String [String])
 
--- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
--- parseInput =
---   return ()
-
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 parseInput = do
   combos <- sepEndBy1 parseLine eol
   return (HM.fromList (fst <$> combos), HM.fromList (snd <$> combos))
-
--- type InputType = [LineType]
--- type LineType = ()
 
 parseLine :: (MonadLogger m) => ParsecT Void Text m ((String, Int), (String, [String]))
 parseLine = do
@@ -71,29 +65,40 @@ data GraphState = GraphState
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
 processInputEasy (flowValues, adjacencyMap) = do
   let distMat = allNodesShortestPath adjacencyMap
-  logErrorN (pack . show $ flowingNodes)
-  result <- dijkstraM (getNeighbors (flowValues', distMat)) getCost isFinished initialState
-  case result of
-    Nothing -> return (-1)
-    Just path -> return (pressureReleased . last . snd $ path)
+  singleActorSearch (flowValues, distMat) (HS.fromList flowingNodes) 30
   where
     flowValues' = HM.filter (> 0) flowValues
     flowingNodes = HM.keys flowValues'
-    initialState = GraphState "AA" (sum . HM.elems $ flowValues') 0 (HS.fromList flowingNodes) 0 0
 
-getNeighbors :: (MonadLogger m) => (HM.HashMap String Int, HM.HashMap (String, String) Int) -> GraphState -> m [GraphState]
-getNeighbors (flowValues, distanceMap) (GraphState currentNode flRate relRate flowing sp released) = do
+type DistanceMap = HM.HashMap (String, String) Int
+type FlowMap = HM.HashMap String Int
+
+singleActorSearch :: (MonadLogger m) => (FlowMap, DistanceMap) -> HS.HashSet String -> Int -> m Int
+singleActorSearch (flowValues, distMat) chosenFlowNodes timeLimit = do
+  result <- dijkstraM (getNeighbors (flowValues', distMat) timeLimit) getCost (isFinished timeLimit) initialState
+  case result of
+    Nothing -> return ((maxBound `quot` 2) - 1)
+    Just path -> return (pressureReleased . last . snd $ path)
+  where
+    flowValues' = HM.filter (> 0) flowValues
+    initialState = GraphState "AA" (sum . HM.elems $ flowValues') 0 chosenFlowNodes 0 0
+
+getNeighbors :: (MonadLogger m) => (HM.HashMap String Int, HM.HashMap (String, String) Int) -> Int -> GraphState -> m [GraphState]
+getNeighbors (flowValues, distanceMap) timeLimit (GraphState currentNode flRate relRate flowing sp released) = do
   let tunnelMoves = mapMaybe tunnelMove (HS.toList flowing)
-  -- logErrorN ("Current: " <> (pack . show $ currentNode) <> " Neighbors: " <> (pack . show $ map current tunnelMoves) <> " Step: " <> (pack . show $ sp))
-  return tunnelMoves
+  if null tunnelMoves
+    then do
+      let diff = timeLimit - sp
+      return [GraphState currentNode flRate relRate flowing timeLimit (released + diff * relRate)]
+    else return tunnelMoves
   where
   -- Move to other locations
     tunnelMove newNode = do
       let dist = 1 + (distanceMap HM.! (currentNode, newNode))
       let newStep = sp + dist
       let flowAtNode = fromMaybe 0 (HM.lookup newNode flowValues)
-      if newStep > 30
-        then Just $ GraphState newNode (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newNode flowing) 30 (released + (30 - sp) * relRate)
+      if newStep > timeLimit
+        then Just $ GraphState newNode (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newNode flowing) timeLimit (released + (timeLimit - sp) * relRate)
         else Just $ GraphState newNode (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newNode flowing) newStep (released + dist * relRate)
 
 getCost :: (MonadLogger m) => GraphState -> GraphState -> m Int
@@ -101,248 +106,34 @@ getCost (GraphState _ flRate _ _ oldStep _) (GraphState _ _ _ _ newStep _) = do
   let stepDiff = newStep - oldStep
   return $ flRate * stepDiff
 
-isFinished :: (MonadLogger m) => GraphState -> m Bool
-isFinished (GraphState _ _ _ flowing x _) = return (x >= 30 || HS.null flowing)
+isFinished :: (MonadLogger m) => Int -> GraphState -> m Bool
+isFinished timeLimit (GraphState _ _ _ flowing x _) = return (x >= timeLimit)
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
 
 -------------------- SOLVING HARD --------------------
-data GraphStateHard = GraphStateHard
-  { player :: String
-  , elephant :: String
-  , flowingRateH :: Int
-  , releasedRateH :: Int
-  , flowingValuesH :: HS.HashSet String
-  , stepH :: Int
-  , pressureReleasedH :: Int
-  } deriving (Show, Eq, Ord)
-
-data Move =
-  MoveNode String | UseValve String
-
-processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard inputs@(flowValues, adjacencyMap) = do
-  result <- dijkstraM (getNeighborsHard inputs) getCostHard {-(estimateRemainingCost inputs)-} isFinishedHard initialState
-  case result of
-    Nothing -> return (-1)
-    Just path -> do
-      forM_ path $ \st -> logErrorN (pack . show $ st)
-      return (pressureReleasedH . last . snd $ path)
-  where
-    flowValues' = HM.filter (> 0) flowValues
-    flowingNodes = HM.keys flowValues'
-    initialState = GraphStateHard "AA" "AA" (sum . HM.elems $ flowValues') 0 (HS.fromList flowingNodes) 0 0
-
-getNeighborsHard :: (MonadLogger m) => InputType -> GraphStateHard -> m [GraphStateHard]
-getNeighborsHard (flowValues, adjacencyMap) (GraphStateHard playerNode elephantNode flRate relRate flowing sp released) = do
-  moves <- mapM makeNewState allMoves
-  if null moves
-    then return [GraphStateHard playerNode elephantNode flRate relRate flowing (sp + 1) released]
-    else return moves
-  where
-    playerValve = [UseValve playerNode | HS.member playerNode flowing]
-    playerMoves = playerValve ++ map MoveNode (adjacencyMap HM.! playerNode)
-
-    elephantValve = [UseValve elephantNode | HS.member elephantNode flowing]
-    elephantMoves = elephantValve ++ map MoveNode (adjacencyMap HM.! elephantNode)
-
-    allMoves :: [(Move, Move)]
-    allMoves = [(p, e) | p <- playerMoves, e <- elephantMoves, isValidCombo p e]
-
-    makeNewState :: (MonadLogger m) => (Move, Move) -> m GraphStateHard
-    makeNewState (playerMove, elephantMove) = do
-      let (newPlayerNode, playerFlowChange, playerFlowSet, playerReward) = case playerMove of
-            MoveNode s -> (s, 0, flowing, 0)
-            UseValve s -> (playerNode, flowValues HM.! s, HS.delete s flowing, (26 - sp - 1) * flowValues HM.! s)
-      let (newElephantNode, elephantFlowChange, elephantFlowSet, elephantReward) = case elephantMove of
-            MoveNode s -> (s, 0, playerFlowSet, 0)
-            UseValve s -> (elephantNode, flowValues HM.! s, HS.delete s playerFlowSet, (26 - sp - 1) * flowValues HM.! s)
-      let newFlRate = flRate - playerFlowChange - elephantFlowChange
-      let newRelRate = relRate + playerFlowChange + elephantFlowChange
-      return $ GraphStateHard newPlayerNode newElephantNode newFlRate newRelRate elephantFlowSet (sp + 1) (released + playerReward + elephantReward)
-
-    isValidCombo :: Move -> Move -> Bool
-    isValidCombo (UseValve v1) (UseValve v2) = v1 /= v2
-    isValidCombo _ _ = True
-
-getCostHard :: (MonadLogger m) => GraphStateHard -> GraphStateHard -> m Int
-getCostHard (GraphStateHard _ _ flRate _ _ oldStep _) (GraphStateHard _ _ _ _ _ newStep _ ) = return $ (newStep - oldStep) * flRate
-
-estimateRemainingCost :: (MonadLogger m) => InputType -> GraphStateHard -> m Int
-estimateRemainingCost (flowValues, _) (GraphStateHard playerNode elephantNode flRate _ flowing sp _) = do
-  let estimatedFlow = flRate - currentPlayerFlow - currentElephantFlow
-  return $ estimatedFlow * (26 - sp)
-  where
-    currentPlayerFlow = if HS.member playerNode flowing then flowValues HM.! playerNode else 0
-    currentElephantFlow = if HS.member elephantNode flowing then flowValues HM.! elephantNode else 0
-
-isFinishedHard :: (MonadLogger m) => GraphStateHard -> m Bool
-isFinishedHard (GraphStateHard _ _ _ _ _ sp _) = return (sp >= 26)
-
 type HardSolutionType = EasySolutionType
 
---   let distMat = allNodesShortestPath adjacencyMap
---   logErrorN (pack . show $ flowingNodes)
---   result <- dijkstraM (getNeighborsHard (flowValues', distMat)) getCostHard isFinishedHard initialState
---   case result of
---     Nothing -> return (-1)
---     Just path -> return (pressureReleasedH . last . snd $ path)
---   where
---     flowValues' = HM.filter (> 0) flowValues
---     flowingNodes = HM.keys flowValues'
---     initialState = GraphStateHard ("AA", 0) ("AA", 0) (sum . HM.elems $ flowValues') 0 (HS.fromList flowingNodes) 0 0
+processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
+processInputHard inputs@(flowValues, adjacencyMap) = snd <$>
+  foldM process (1, -1) (Set.toList $ Set.powerSet flowingNodes)
+  where
+    flowValues' = HM.filter (> 0) flowValues
+    flowingNodes = Set.fromList $ HM.keys flowValues'
+    distMat = allNodesShortestPath adjacencyMap
 
--- getNeighborsHard :: (MonadLogger m) => (HM.HashMap String Int, HM.HashMap (String, String) Int) -> GraphStateHard -> m [GraphStateHard]
--- getNeighborsHard (flowValues, distanceMap) (GraphStateHard (playerNode, playerDist) (elephantNode, elephantDist) flRate relRate flowing sp released)
---   | HS.null flowing = noMoreMoves
---   | playerDist == 0 && elephantDist == 0 = pickMovesBoth
---   | playerDist == 0 = pickMovesPlayer
---   | elephantDist == 0 = pickMovesElephant
---   | otherwise = error "This can't happen"
---   where
---     noMoreMoves
---       | playerDist == 0 && elephantDist == 0 =
---         return [GraphStateHard (playerNode, 0) (elephantNode, 0) flRate relRate flowing 26 (released + (26 - sp) * relRate)]
---       -- | playerDist == 0 = do
---       --   let newStep = sp + elephantDist
---       --   let flowAtNode = fromMaybe 0 (HM.lookup elephantNode flowValues)
---       --   if newStep > 26
---       --     then return [GraphStateHard (playerNode, 0) (elephantNode, elephantDist - (26 - sp)) flRate relRate flowing 26 (released + (26 - sp) * relRate)]
---       --     else return [GraphStateHard (playerNode, 0) (elephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete elephantNode flowing) newStep (released + relRate * elephantDist)]
---       -- | elephantDist == 0 = do
---       --   let newStep = sp + playerDist
---       --   let flowAtNode = fromMaybe 0 (HM.lookup playerNode flowValues)
---       --   if newStep > 26
---       --     then return [GraphStateHard (playerNode, playerDist - (26 - sp)) (elephantNode, 0) flRate relRate flowing 26 (released + (26 - sp) * relRate)]
---       --     else return [GraphStateHard (playerNode, 0) (elephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete playerNode flowing) newStep (released + relRate * elephantDist)]
---       | otherwise = error "This can't happen"
-
---     -- Player is 0 and elephant is not 0
---     --   Player must select a new move.
---     --   For each possible new location, we get a new state. Either the player or elephant (or both) reaches the location.
---     pickMovesPlayer :: (MonadLogger m) => m [GraphStateHard]
---     pickMovesPlayer = do
---       let possibleMoves = [n | n <- HS.toList flowing, n /= elephantNode] -- TODO: Perhaps I shouldn't allow n == elephant node because it gets confused.
---       mapM playerMove possibleMoves
-    
---     playerMove :: (MonadLogger m) => String -> m GraphStateHard
---     playerMove newPlayerNode = do
---       let playerDist = 1 + (distanceMap HM.! (playerNode, newPlayerNode))
---       if playerDist < elephantDist
---         then do
---           let newStep = sp + playerDist
---           let flowAtNode = fromMaybe 0 (HM.lookup newPlayerNode flowValues)
---           if newStep > 26
---             then return $ GraphStateHard (newPlayerNode, 0) (elephantNode, elephantDist - playerDist) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newPlayerNode flowing) 26 (released + (26 - sp) * relRate)
---             else return $ GraphStateHard (newPlayerNode, 0) (elephantNode, elephantDist - playerDist) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newPlayerNode flowing) newStep (released + playerDist * relRate)
---         else if elephantDist < playerDist
---           then do
---             let newStep = sp + elephantDist
---             let flowAtNode = fromMaybe 0 (HM.lookup elephantNode flowValues)
---             if newStep > 26
---               then return $ GraphStateHard (newPlayerNode, playerDist - elephantDist) (elephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete elephantNode flowing) 26 (released + (26 - sp) * relRate)
---               else return $ GraphStateHard (newPlayerNode, playerDist - elephantDist) (elephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete elephantNode flowing) newStep (released + elephantDist * relRate)
---           else do
---             let newStep = sp + playerDist
---             let combinedFlows = fromMaybe 0 (HM.lookup newPlayerNode flowValues) + fromMaybe 0 (HM.lookup elephantNode flowValues)
---             let newSet = HS.delete newPlayerNode (HS.delete elephantNode flowing)
---             if newStep > 26
---               then return $ GraphStateHard (newPlayerNode, 0) (elephantNode, 0) (flRate - combinedFlows) (relRate + combinedFlows) newSet 26 (released + (26 - sp) * relRate)
---               else return $ GraphStateHard (newPlayerNode, 0) (elephantNode, 0) (flRate - combinedFlows) (relRate + combinedFlows) newSet newStep (released + elephantDist * relRate)
-
---     -- Elephant is 0 and player is not 0
---     --   Same as above, but reversed
---     pickMovesElephant = do
---       let possibleMoves = [n | n <- HS.toList flowing, n /= playerNode]
---       mapM elephantMove possibleMoves
-
---     elephantMove :: (MonadLogger m) => String -> m GraphStateHard
---     elephantMove newElephantNode = do
---       let elephantDist = 1 + (distanceMap HM.! (elephantNode, newElephantNode))
---       if playerDist < elephantDist
---         then do
---           let newStep = sp + playerDist
---           let flowAtNode = fromMaybe 0 (HM.lookup playerNode flowValues)
---           if newStep > 26
---             then return $ GraphStateHard (playerNode, 0) (newElephantNode, elephantDist - playerDist) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete playerNode flowing) 26 (released + (26 - sp) * relRate)
---             else return $ GraphStateHard (playerNode, 0) (newElephantNode, elephantDist - playerDist) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete playerNode flowing) newStep (released + playerDist * relRate)
---         else if elephantDist < playerDist
---           then do
---             let newStep = sp + elephantDist
---             let flowAtNode = fromMaybe 0 (HM.lookup newElephantNode flowValues)
---             if newStep > 26
---               then return $ GraphStateHard (playerNode, playerDist - elephantDist) (newElephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newElephantNode flowing) 26 (released + (26 - sp) * relRate)
---               else return $ GraphStateHard (playerNode, playerDist - elephantDist) (newElephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newElephantNode flowing) newStep (released + elephantDist * relRate)
---           else do
---             let newStep = sp + playerDist
---             let combinedFlows = fromMaybe 0 (HM.lookup playerNode flowValues) + fromMaybe 0 (HM.lookup newElephantNode flowValues)
---             let newSet = HS.delete playerNode (HS.delete newElephantNode flowing)
---             if newStep > 26
---               then return $ GraphStateHard (playerNode, 0) (newElephantNode, 0) (flRate - combinedFlows) (relRate + combinedFlows) newSet 26 (released + (26 - sp) * relRate)
---               else return $ GraphStateHard (playerNode, 0) (newElephantNode, 0) (flRate - combinedFlows) (relRate + combinedFlows) newSet newStep (released + elephantDist * relRate)
-    
---     -- Player and Elephant are both 0
---     --   Both select new moves (that are different).
---     --   Within each 'pair' of states, the smaller one (or both) reaches the destination.
---     pickMovesBoth = do
---       let movePairs = [(s1, s2) | s1 <- HS.toList flowing, s2 <- HS.toList flowing, s1 /= s2]
---       mapM moveBoth movePairs
-    
---     moveBoth :: (MonadLogger m) => (String, String) -> m GraphStateHard
---     moveBoth (newPlayerNode, newElephantNode) = do
---       let playerDist = 1 + (distanceMap HM.! (playerNode, newPlayerNode))
---       let elephantDist = 1 + (distanceMap HM.! (elephantNode, newElephantNode))
---       if playerDist < elephantDist
---         then do
---           let newStep = sp + playerDist
---           let flowAtNode = fromMaybe 0 (HM.lookup newPlayerNode flowValues)
---           if newStep > 26
---             then return $ GraphStateHard (newPlayerNode, 0) (newElephantNode, elephantDist - playerDist) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newPlayerNode flowing) 26 (released + (26 - sp) * relRate)
---             else return $ GraphStateHard (newPlayerNode, 0) (newElephantNode, elephantDist - playerDist) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newPlayerNode flowing) newStep (released + playerDist * relRate)
---         else if elephantDist < playerDist
---           then do
---             let newStep = sp + elephantDist
---             let flowAtNode = fromMaybe 0 (HM.lookup newElephantNode flowValues)
---             if newStep > 26
---               then return $ GraphStateHard (newPlayerNode, playerDist - elephantDist) (newElephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newElephantNode flowing) 26 (released + (26 - sp) * relRate)
---               else return $ GraphStateHard (newPlayerNode, playerDist - elephantDist) (newElephantNode, 0) (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newElephantNode flowing) newStep (released + elephantDist * relRate)
---           else do
---             let newStep = sp + playerDist
---             let combinedFlows = fromMaybe 0 (HM.lookup newPlayerNode flowValues) + fromMaybe 0 (HM.lookup newElephantNode flowValues)
---             let newSet = HS.delete newPlayerNode (HS.delete newElephantNode flowing)
---             if newStep > 26
---               then return $ GraphStateHard (newPlayerNode, 0) (newElephantNode, 0) (flRate - combinedFlows) (relRate + combinedFlows) newSet 26 (released + (26 - sp) * relRate)
---               else return $ GraphStateHard (newPlayerNode, 0) (newElephantNode, 0) (flRate - combinedFlows) (relRate + combinedFlows) newSet newStep (released + elephantDist * relRate)
-
---   -- let tunnelMoves = mapMaybe tunnelMove (HS.toList flowing)
---   -- -- logErrorN ("Current: " <> (pack . show $ currentNode) <> " Neighbors: " <> (pack . show $ map current tunnelMoves) <> " Step: " <> (pack . show $ sp))
---   -- return tunnelMoves
---   -- where
---   -- -- Move to other locations
---   --   tunnelMove newNode = do
---   --     let dist = 1 + (distanceMap HM.! (currentNode, newNode))
---   --     let newStep = sp + dist
---   --     let flowAtNode = fromMaybe 0 (HM.lookup newNode flowValues)
---   --     if newStep > 30
---   --       then Just $ GraphState newNode (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newNode flowing) 30 (released + (30 - sp) * relRate)
---   --       else Just $ GraphState newNode (flRate - flowAtNode) (relRate + flowAtNode) (HS.delete newNode flowing) newStep (released + dist * relRate)
-
--- getCostHard :: (MonadLogger m) => GraphStateHard -> GraphStateHard -> m Int
--- getCostHard (GraphStateHard _ _ flRate _ _ oldStep _) (GraphStateHard _ _ _ _ _ newStep _) = do
---   let stepDiff = newStep - oldStep
---   return $ flRate * stepDiff
-
--- isFinishedHard :: (MonadLogger m) => GraphStateHard -> m Bool
--- isFinishedHard (GraphStateHard _ _ _ _ _ x _) = return (x >= 26)
-
--- findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
--- findHardSolution _ = return Nothing
-
--------------------- SOLUTION PATTERNS --------------------
-
-distance :: String -> String -> Int
-distance = undefined
+    process (iterationNum, prevMax) playerNodes = do
+      let elephantNodes = Set.difference flowingNodes playerNodes
+      let numPlayer = Set.size playerNodes
+      let numElephant = Set.size elephantNodes
+      if numPlayer < numElephant
+        then return (iterationNum, prevMax)
+        else do
+          playerResults <- singleActorSearch (flowValues, distMat) (HS.fromList $ Set.toList playerNodes) 26
+          elephantResults <- singleActorSearch (flowValues, distMat) (HS.fromList $ Set.toList elephantNodes) 26
+          logErrorN ("Running iteration: " <> (pack . show $ iterationNum) <> " " <> (pack . show $ playerResults) <> " " <> (pack . show $ elephantResults))
+          return (iterationNum + 1, max prevMax (playerResults + elephantResults))
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
