@@ -20,7 +20,7 @@ import qualified Day14 as D14
 import qualified Day15 as D15
 import qualified Day16 as D16
 import qualified Day17 as D17
--- import qualified Day18 as D18
+import qualified Day18 as D18
 -- import qualified Day19 as D19
 -- import qualified Day20 as D20
 -- import qualified Day21 as D21
@@ -99,10 +99,10 @@ main = do
   -- day172 <- D17.easyLarge
   -- day173 <- D17.hardSmall
   -- day174 <- D17.hardLarge
---   day181 <- D18.easySmall
---   day182 <- D18.easyLarge
---   day183 <- D18.hardSmall
---   day184 <- D18.hardLarge
+  day181 <- D18.easySmall
+  day182 <- D18.easyLarge
+  day183 <- D18.hardSmall
+  day184 <- D18.hardLarge
 --   day191 <- D19.easySmall
 --   day192 <- D19.easyLarge
 --   day193 <- D19.hardSmall
@@ -200,10 +200,10 @@ main = do
     -- , testCase "Day 17-2" $ day172 @?= Just 3085
     -- , testCase "Day 17-3" $ day173 @?= Just 1514285714288
     -- , testCase "Day 17-4" $ day174 @?= Just 1999999999973
-    -- , testCase "Day 18-1" $ day181 @?= Just 0
-    -- , testCase "Day 18-2" $ day182 @?= Just 0
-    -- , testCase "Day 18-3" $ day183 @?= Just 0
-    -- , testCase "Day 18-4" $ day184 @?= Just 0
+    , testCase "Day 18-1" $ day181 @?= Just 64
+    , testCase "Day 18-2" $ day182 @?= Just 4460
+    , testCase "Day 18-3" $ day183 @?= Just 58
+    , testCase "Day 18-4" $ day184 @?= Just 2498
     -- , testCase "Day 19-1" $ day191 @?= Just 0
     -- , testCase "Day 19-2" $ day192 @?= Just 0
     -- , testCase "Day 19-3" $ day193 @?= Just 0

@@ -2,13 +2,17 @@
 
 module Day18 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logErrorN)
 import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Text.Megaparsec.Char (eol, char)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
-import Utils (parseFile)
+import Utils (parseFile, parsePositiveNumber, countWhere)
+import qualified Data.HashSet as HS
+import Control.Monad (foldM)
+import qualified Data.Sequence as Seq
+import Data.List (partition)
 
 dayNum :: Int
 dayNum = 18
@@ -17,76 +21,85 @@ dayNum = 18
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = [Coord3]
+type Coord3 = (Int, Int, Int)
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
+parseInput = sepEndBy1 parseLine eol
 
--- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
--- parseInput =
---   sepEndyBy1 parseLine eol
-
--- type InputType = [LineType]
--- type LineType = ()
-
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+parseLine :: (MonadLogger m) => ParsecT Void Text m Coord3
+parseLine = do
+  i <- parsePositiveNumber
+  char ','
+  j <- parsePositiveNumber
+  char ','
+  k <- parsePositiveNumber
+  return (i, j, k)
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+processInputEasy :: (MonadLogger m) => InputType -> m Int
+processInputEasy inputs = fst <$> foldM foldLine initialFoldV inputs
 
-processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+type FoldType = (Int, HS.HashSet Coord3)
 
-findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
-findEasySolution _ = return Nothing
+initialFoldV :: FoldType
+initialFoldV = (0, HS.empty)
+
+foldLine :: (MonadLogger m) => FoldType -> Coord3 -> m FoldType
+foldLine (prevCount, prevSet) c@(x, y, z) = return (prevCount + newCount, HS.insert c prevSet)
+  where
+    newCount = 6 - 2 * countWhere (`HS.member` prevSet) neighbors
+    neighbors = neighbors3 c
+
+neighbors3 :: Coord3 -> [Coord3]
+neighbors3 (x, y, z) =
+  [ (x + 1, y, z)
+  , (x - 1, y, z)
+  , (x, y + 1, z)
+  , (x, y - 1, z)
+  , (x, y, z + 1)
+  , (x, y, z - 1)
+  ]
 
 -------------------- SOLVING HARD --------------------
-type HardSolutionType = EasySolutionType
+data Dimens = Dimens
+  { minX :: Int
+  , maxX :: Int
+  , minY :: Int
+  , maxY :: Int
+  , minZ :: Int
+  , maxZ :: Int
+  } deriving (Show)
 
-processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard :: (MonadLogger m) => InputType -> m Int
+processInputHard inputs = do
+  let cubeSet = HS.fromList inputs
+      (xs, ys, zs) = unzip3 inputs
+      dimens = Dimens (minimum xs - 1) (maximum xs + 1) (minimum ys - 1) (maximum ys + 1) (minimum zs - 1) (maximum zs + 1)
+      initialLoc = (minX dimens, minY dimens, minZ dimens)
+  bfs dimens cubeSet (0, Seq.singleton initialLoc, HS.singleton initialLoc)
 
-findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
-findHardSolution _ = return Nothing
+bfs :: (MonadLogger m) => Dimens -> HS.HashSet Coord3 -> (Int, Seq.Seq Coord3, HS.HashSet Coord3) -> m Int
+bfs dimens cubeSet (count, queue, visited) = case Seq.viewl queue of
+  Seq.EmptyL -> return count
+  top Seq.:< rest -> do
+    let neighbors = filter (\c -> inBounds dimens c && not (HS.member c visited)) (neighbors3 top)
+        (inLava, notLava) = partition (`HS.member` cubeSet) neighbors
+        newQueue = foldl (Seq.|>) rest notLava
+        newVisited = foldl (flip HS.insert) visited notLava
+    bfs dimens cubeSet (count + length inLava, newQueue, newVisited)
 
--------------------- SOLUTION PATTERNS --------------------
-
--- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
-
--- type FoldType = ()
-
--- initialFoldV :: FoldType
--- initialFoldV = undefined
-
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
-
--- type StateType = ()
-
--- initialStateV :: StateType
--- initialStateV = ()
-
--- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
--- solveStateN 0 st = return st
--- solveStateN n st = do
---   st' <- evolveState st
---   solveStateN (n - 1) st'
-
--- evolveState :: (MonadLogger m) => StateType -> m StateType
--- evolveState st = undefined
+inBounds :: Dimens -> Coord3 -> Bool
+inBounds (Dimens mnx mxx mny mxy mnz mxz) (x, y, z)  =
+  x >= mnx && x <= mxx && y >= mny && y <= mxy && z >= mnz && z <= mxz
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
