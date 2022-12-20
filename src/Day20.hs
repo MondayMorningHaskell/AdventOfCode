@@ -2,13 +2,17 @@
 
 module Day20 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logErrorN, logDebugN)
 import Text.Megaparsec (ParsecT, sepEndBy1)
 import Text.Megaparsec.Char (eol)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
-import Utils (parseFile)
+import Utils (parseFile, parseSignedInteger)
+import qualified Data.Sequence as Seq
+import qualified Data.Sequence.Internal as Seq
+import Data.List (partition)
+import Data.Int (Int64)
 
 dayNum :: Int
 dayNum = 20
@@ -17,76 +21,133 @@ dayNum = 20
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
-solveHard :: FilePath -> IO (Maybe Int)
+solveHard :: FilePath -> IO Int64
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = [Int]
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
-
--- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
--- parseInput =
---   sepEndyBy1 parseLine eol
-
--- type InputType = [LineType]
--- type LineType = ()
-
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+parseInput = sepEndBy1 parseSignedInteger eol
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy inputs = do
+  finalSeq <- easyTail (initialFoldV inputs)
+  let first0 = Seq.findIndexL (== 0) finalSeq
+  case first0 of
+    Nothing -> logErrorN "Couldn't find 0!" >> return minBound
+    Just i -> do
+      let indices = map (`mod` Seq.length finalSeq) [i + 1000, i + 2000, i + 3000]
+      return $ sum $ map (Seq.index finalSeq) indices
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
 
 -------------------- SOLVING HARD --------------------
-type HardSolutionType = EasySolutionType
+type HardSolutionType = Int64
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard inputs = do
+  let first = initialFoldH inputs
+  set1 <- hardTail (initialFoldH inputs)
+  logErrorN "Done 1"
+  let nextIndices1 = newIndices set1
+  set2 <- hardTail (set1, nextIndices1)
+  logErrorN "Done 2"
+  let nextIndices2 = newIndices set2
+  set3 <- hardTail (set2, nextIndices2)
+  logErrorN "Done 3"
+  let nextIndices3 = newIndices set3
+  set4 <- hardTail (set3, nextIndices3)
+  logErrorN "Done 4"
+  let nextIndices4 = newIndices set4
+  set5 <- hardTail (set4, nextIndices4)
+  logErrorN "Done 5"
+  let nextIndices5 = newIndices set5
+  set6 <- hardTail (set5, nextIndices5)
+  logErrorN "Done 6"
+  let nextIndices6 = newIndices set6
+  set7 <- hardTail (set6, nextIndices6)
+  logErrorN "Done 7"
+  let nextIndices7 = newIndices set7
+  set8 <- hardTail (set7, nextIndices7)
+  logErrorN "Done 8"
+  let nextIndices8 = newIndices set8
+  set9 <- hardTail (set8, nextIndices8)
+  logErrorN "Done 9"
+  let nextIndices9 = newIndices set9
+  set10 <- hardTail (set9, nextIndices9)
+  logErrorN "Done 10"
+  let first0 = Seq.findIndexL (\(v, _) -> v == 0) set10
+  case first0 of
+    Nothing -> logErrorN "Couldn't find 0!" >> return minBound
+    Just i -> do
+      let indices = map (`mod` Seq.length set10) [i + 1000, i + 2000, i + 3000]
+      return $ sum $ map (fst . Seq.index set10) indices
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing
 
 -------------------- SOLUTION PATTERNS --------------------
 
--- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
+type FoldType = (Seq.Seq Int, [Int])
 
--- type FoldType = ()
+initialFoldV :: [Int] -> FoldType
+initialFoldV inputs = (Seq.fromList inputs, [0,1..(length inputs - 1)])
 
--- initialFoldV :: FoldType
--- initialFoldV = undefined
+easyTail :: (MonadLogger m) => FoldType -> m (Seq.Seq Int)
+easyTail (queue, []) = return queue
+easyTail (queue, nextIndex : restIndices) = do
+  let val = Seq.index queue nextIndex
+  let queue' = Seq.deleteAt nextIndex queue
+  let newIndex = (nextIndex + val) `mod` Seq.length queue'
+  let queue'' = Seq.insertAt newIndex val queue'
+  let (indicesToChange, unchanged) = partition (<= newIndex) restIndices
+  easyTail (queue'', map (\i -> i - 1) indicesToChange ++ unchanged)
 
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
+type FoldTypeH = (Seq.Seq (Int64, Int), [Int])
 
--- type StateType = ()
+initialFoldH :: [Int] -> FoldTypeH
+initialFoldH inputs = (Seq.fromList tuples, [0,1..(length inputs - 1)])
+  where
+    indices = [0,1..(length inputs - 1)]
+    tuples = zip (map ((* 811589153) . fromIntegral) inputs) indices
 
--- initialStateV :: StateType
--- initialStateV = ()
+hardTail :: (MonadLogger m) => FoldTypeH -> m (Seq.Seq (Int64, Int))
+hardTail (queue, []) = return queue
+hardTail (queue, nextIndex : restIndices) = do
+  let (val, order) = Seq.index queue nextIndex
+  let queue' = Seq.deleteAt nextIndex queue
+  let val' = fromIntegral (val `mod` fromIntegral (Seq.length queue'))
+  let newIndex = (nextIndex + val') `mod` Seq.length queue'
+  let queue'' = Seq.insertAt newIndex (val, order) queue'
+  let finalIndices = adjustIndices nextIndex newIndex
+  hardTail (queue'', finalIndices)
+  where
+    adjustIndices old new 
+      | old > new = map (\i -> if i >= new && i < old then i + 1 else i) restIndices
+      | old < new = map (\i -> if i <= new && i > old then i - 1 else i) restIndices
+      | otherwise = restIndices
 
--- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
--- solveStateN 0 st = return st
--- solveStateN n st = do
---   st' <- evolveState st
---   solveStateN (n - 1) st'
+newIndices :: Seq.Seq (Int64, Int) -> [Int]
+newIndices inputs = seqToList (fst <$> sortedByOrder)
+  where
+    zipped = Seq.zip (Seq.fromList [0,1..(Seq.length inputs - 1)]) inputs
+    sortedByOrder = Seq.sortOn (snd . snd) zipped
 
--- evolveState :: (MonadLogger m) => StateType -> m StateType
--- evolveState st = undefined
+seqToList :: Seq.Seq a -> [a]
+seqToList sequence = reverse $ foldl (flip (:)) [] sequence
+
+-- i is the index in order
+-- they will go in the order given by J
+-- (i, (v, j))
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
@@ -101,8 +162,8 @@ easySmall = solveEasy smallFile
 easyLarge :: IO (Maybe Int)
 easyLarge = solveEasy largeFile
 
-hardSmall :: IO (Maybe Int)
+hardSmall :: IO Int64
 hardSmall = solveHard smallFile
 
-hardLarge :: IO (Maybe Int)
+hardLarge :: IO Int64
 hardLarge = solveHard largeFile
