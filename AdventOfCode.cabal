@@ -43,6 +43,7 @@ library
       Day16
       Day17
       Day18
+      Day19
   other-modules:
       Utils
   hs-source-dirs:

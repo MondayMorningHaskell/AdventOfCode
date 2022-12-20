@@ -1,14 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Day19 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logErrorN)
 import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Text.Megaparsec.Char (eol, string)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
-import Utils (parseFile)
+import Utils (parseFile, parsePositiveNumber)
+import Control.Monad (foldM, when, forM_, forM)
+import qualified Data.Set as Set
+import qualified Data.Sequence as Seq
+import Data.Maybe (catMaybes)
+import Algorithm.Search (dijkstraM, aStarM)
+import Control.Applicative ((<|>))
 
 dayNum :: Int
 dayNum = 19
@@ -17,37 +24,52 @@ dayNum = 19
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = [LineType]
+type LineType = BluePrint
+
+data BluePrint = BluePrint
+  { idNumber :: Int
+  , oreRobotCost :: Int
+  , clayRobotCost :: Int
+  , obsidianRobotCost :: (Int, Int)
+  , geodeRobotCost :: (Int, Int)
+  } deriving (Show)
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
+parseInput = sepEndBy1 parseLine eol
 
--- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
--- parseInput =
---   sepEndyBy1 parseLine eol
-
--- type InputType = [LineType]
--- type LineType = ()
-
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+parseLine = do
+  string "Blueprint "
+  bpNum <- parsePositiveNumber
+  string ": Each ore robot costs "
+  oreCost <- parsePositiveNumber
+  string " ore. Each clay robot costs "
+  clayCost <- parsePositiveNumber
+  string " ore. Each obsidian robot costs "
+  obsOreCost <- parsePositiveNumber
+  string " ore and "
+  obsClayCost <- parsePositiveNumber
+  string " clay. Each geode robot costs "
+  geodeOreCost <- parsePositiveNumber
+  string " ore and "
+  geodeObsCost <- parsePositiveNumber
+  string " obsidian."
+  return $ BluePrint bpNum oreCost clayCost (obsOreCost, obsClayCost) (geodeOreCost, geodeObsCost)
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy = foldM foldLine initialFoldV
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
@@ -56,37 +78,83 @@ findEasySolution _ = return Nothing
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard blueprints = foldM foldLineHard initialFoldH (take 3 blueprints)
 
-findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
-findHardSolution _ = return Nothing
+initialFoldH :: FoldType
+initialFoldH = 1
+
+foldLineHard :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+foldLineHard prev blueprint = do
+  quality <- fst <$> dfs 32 blueprint (0, Set.empty) [initialState]
+  logErrorN ("ID: " <> (pack . show $ idNumber blueprint) <> " " <> (pack . show $ quality))
+  return $ prev * quality
+  where
+    initialState = SearchState 1 0 0 0 0 0 0 0 0
 
 -------------------- SOLUTION PATTERNS --------------------
 
--- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
+type FoldType = Int
 
--- type FoldType = ()
+initialFoldV :: FoldType
+initialFoldV = 0
 
--- initialFoldV :: FoldType
--- initialFoldV = undefined
+foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
+foldLine prev blueprint = do
+  quality <- fst <$> dfs 24 blueprint (0, Set.empty) [initialState]
+  logErrorN (pack . show $ quality)
+  return $ prev + (idNumber blueprint * quality)
+  where
+    initialState = SearchState 1 0 0 0 0 0 0 0 0
 
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
+data SearchState = SearchState
+  { numOreRobots :: Int
+  , numClayRobots :: Int
+  , numObsidianRobots :: Int
+  , numGeodeRobots :: Int
+  , ore :: Int
+  , clay :: Int
+  , obsidian :: Int
+  , geodes :: Int
+  , time :: Int
+  } deriving (Eq, Ord, Show)
 
--- type StateType = ()
+neighbors :: (MonadLogger m) => Int -> Int -> BluePrint -> SearchState -> m [SearchState]
+neighbors maxTime prevMax (BluePrint _ o c (obsOre, obsClay) (geoOre, geoObs)) st@(SearchState oRobots cRobots obsRobots geoRobots ore' clay' obsidian' geodes' t) =
+  if maxGeodes < prevMax
+    then return []
+    else do
+      let (results :: [SearchState]) = reverse (stepTime : catMaybes [tryMakeOre, tryMakeClay, tryMakeObsidian, tryMakeGeode])
+      return results
+  where
+    stepTime = SearchState oRobots cRobots obsRobots geoRobots (ore' + oRobots) (clay' + cRobots) (obsidian' + obsRobots) (geodes' + geoRobots) (t + 1)
+    tryMakeOre = if ore' >= o && oRobots < maximum [o, c, obsOre, geoOre]
+      then Just $ stepTime {numOreRobots = oRobots + 1, ore = ore stepTime - o}
+      else Nothing
+    tryMakeClay = if ore' >= c && cRobots < obsClay
+      then Just $ stepTime {numClayRobots = cRobots + 1, ore = ore stepTime - c}
+      else Nothing
+    tryMakeObsidian = if ore' >= obsOre && clay' >= obsClay && obsRobots < geoObs
+      then Just $ stepTime {numObsidianRobots = obsRobots + 1, ore = ore stepTime - obsOre, clay = clay stepTime - obsClay}
+      else Nothing
+    tryMakeGeode = if ore' >= geoOre && obsidian' >= geoObs
+      then Just $ stepTime {numGeodeRobots = geoRobots + 1, ore = ore stepTime - geoOre, obsidian = obsidian stepTime - geoObs}
+      else Nothing
+    maxGeodes = geodes' + (geoRobots * (maxTime - t)) + sum [1..(maxTime - t)]
 
--- initialStateV :: StateType
--- initialStateV = ()
-
--- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
--- solveStateN 0 st = return st
--- solveStateN n st = do
---   st' <- evolveState st
---   solveStateN (n - 1) st'
-
--- evolveState :: (MonadLogger m) => StateType -> m StateType
--- evolveState st = undefined
+dfs :: (MonadLogger m) => Int -> BluePrint -> (Int, Set.Set SearchState) -> [SearchState] -> m (Int, Set.Set SearchState)
+dfs maxTime bp (mostGeodes, visited) stack = case stack of
+  [] -> return (mostGeodes, visited)
+  (top : rest) -> if time top >= maxTime
+    then return (max mostGeodes (geodes top), Set.insert top visited)
+    else do
+      next <- neighbors maxTime mostGeodes bp top
+      let next' = filter (\st -> not (st `Set.member` visited)) next
+          newVisited = foldl (flip Set.insert) visited next'
+      foldM f (mostGeodes, newVisited) next'
+  where
+    f (prevMax, newVisited) st = do
+      (resultVal, visited') <- dfs maxTime bp (prevMax, newVisited) (st : stack)
+      return (max resultVal prevMax, visited')
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
