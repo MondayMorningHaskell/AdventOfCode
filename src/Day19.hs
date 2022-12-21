@@ -86,7 +86,6 @@ initialFoldH = 1
 foldLineHard :: (MonadLogger m) => FoldType -> LineType -> m FoldType
 foldLineHard prev blueprint = do
   quality <- fst <$> dfs 32 blueprint (0, Set.empty) [initialState]
-  logErrorN ("ID: " <> (pack . show $ idNumber blueprint) <> " " <> (pack . show $ quality))
   return $ prev * quality
   where
     initialState = SearchState 1 0 0 0 0 0 0 0 0
@@ -101,7 +100,6 @@ initialFoldV = 0
 foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
 foldLine prev blueprint = do
   quality <- fst <$> dfs 24 blueprint (0, Set.empty) [initialState]
-  logErrorN (pack . show $ quality)
   return $ prev + (idNumber blueprint * quality)
   where
     initialState = SearchState 1 0 0 0 0 0 0 0 0
