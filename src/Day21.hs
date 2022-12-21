@@ -27,7 +27,6 @@ solveHard fp = runStdoutLoggingT $ do
   Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type DependencyMap = HM.HashMap String [String]
 type CalculationMap = HM.HashMap String Calculation
 type InputType = CalculationMap
 
@@ -43,10 +42,6 @@ data Calculation =
   FinalValue Int64 |
   Operation Op String String |
   HumanVal
-  deriving (Show, Eq)
-
-data Value =
-  SolvedValue Int64 | UnsolvedValue String
   deriving (Show, Eq)
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
@@ -78,24 +73,14 @@ parseLine = do
 -------------------- SOLVING EASY --------------------
 type EasySolutionType = Int64
 
-processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
+processInputEasy :: (MonadFail m, MonadLogger m) => InputType -> m EasySolutionType
 processInputEasy calculationMap = solveValue calculationMap "root"
 
-  -- Filter Calculation Map By FinalValues
-  -- Plug These into Calculation Map by using dependencyMap
-  -- Filter Calculation Map by Ops with Solved Values
-  -- Replace with Final Values
-  -- Recurse
-
-findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
-findEasySolution _ = return Nothing
-
-solveValue :: (MonadLogger m) => CalculationMap -> String -> m Int64
-solveValue calculationMap name = case HM.lookup name calculationMap of
-  Nothing -> logErrorN ("Invalid Name: " <> pack name <> "!") >> return minBound
-  Just HumanVal -> logErrorN "Can't solve human value! Check with hasHumanVal first." >> return minBound
-  Just (FinalValue x) -> return x
-  Just (Operation op s1 s2) -> do
+solveValue :: (MonadLogger m, MonadFail m) => CalculationMap -> String -> m Int64
+solveValue calculationMap name = case calculationMap HM.! name of
+  HumanVal -> fail "Can't solve human value! Check with hasHumanVal first."
+  (FinalValue x) -> return x
+  (Operation op s1 s2) -> do
     x1 <- solveValue calculationMap s1
     x2 <- solveValue calculationMap s2
     case op of
@@ -103,52 +88,39 @@ solveValue calculationMap name = case HM.lookup name calculationMap of
       Minus -> return $ x1 - x2
       Times -> return $ x1 * x2
       Divided -> return $ x1 `quot` x2
-      Equals -> logErrorN "Invalid use of equals...can only apply to 'root'" >> return minBound
+      Equals -> fail "Invalid use of equals...can only apply to 'root' on Part 2."
 
 -------------------- SOLVING HARD --------------------
 type HardSolutionType = EasySolutionType
 
-updateCalculationsHard :: (MonadLogger m) => CalculationMap -> m CalculationMap
+processInputHard :: (MonadFail m, MonadLogger m) => InputType -> m HardSolutionType
+processInputHard input = do
+  calculationMap <- updateCalculationsHard input
+  -- Note: It doesn't matter what we pass as the initial value here.
+  -- We expect "root" to be an "Equals" operation, which discards the value
+  -- and replaces it with the solvable number.
+  getHumanValForExpectedOutcome calculationMap 0 "root"
+
+updateCalculationsHard :: (MonadLogger m, MonadFail m) => CalculationMap -> m CalculationMap
 updateCalculationsHard calculationMap = do
   let map' = HM.insert "humn" HumanVal calculationMap
   case HM.lookup "root" calculationMap of
-    Nothing -> logErrorN "Error! Must have root!" >> return calculationMap
-    Just (FinalValue x) -> logErrorN "Error! Root cannot be final!" >> return calculationMap
-    Just HumanVal -> logErrorN "Error! Root cannot be human!" >> return calculationMap
+    Nothing -> fail "Error! Must have root!"
+    Just (FinalValue x) -> fail "Error! Root cannot be final!"
+    Just HumanVal -> fail "Error! Root cannot be human!"
     Just (Operation _ s1 s2) -> return $ HM.insert "root" (Operation Equals s1 s2) map'
 
-processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard input = do
-  input' <- updateCalculationsHard input
-  case HM.lookup "root" input' of
-    Nothing -> return minBound
-    Just (FinalValue x) -> return (-4)
-    Just HumanVal -> return (-5)
-    Just (Operation _ s1 s2) -> do
-      human1 <- hasHumanDep input' s1
-      human2 <- hasHumanDep input' s2
-      case (human1, human2) of
-        (True, True) -> logErrorN "Both sides have human deps...I need a new approach." >> return (-1)
-        (False, False) -> logErrorN "Neither side has human dep...probably didn't substitute right." >> return (-2)
-        (True, False) -> do
-          v2 <- solveValue input' s2
-          getHumanValForExpectedOutcome input' v2 s1
-        (False, True) -> do
-          v1 <- solveValue input' s1
-          getHumanValForExpectedOutcome input' v1 s2
-
-getHumanValForExpectedOutcome :: (MonadLogger m) => CalculationMap -> Int64 -> String -> m Int64
+getHumanValForExpectedOutcome :: (MonadLogger m, MonadFail m) => CalculationMap -> Int64 -> String -> m Int64
 getHumanValForExpectedOutcome calculationMap expected nodeName = do
-  -- logErrorN (pack nodeName)
   case calculationMap HM.! nodeName of
     HumanVal -> return expected
-    (FinalValue _) -> logErrorN "This node doesn't actually depend on human value!" >> return (-3)
+    (FinalValue _) -> fail "This node doesn't actually depend on human value! Check implementation of hasHumanDep"
     (Operation op s1 s2) -> do
       human1 <- hasHumanDep calculationMap s1
       human2 <- hasHumanDep calculationMap s2
       case (human1, human2) of
-        (True, True) -> logErrorN "Both sides have human deps...I need a new approach." >> return (-1)
-        (False, False) -> logErrorN "Neither side has human dep...probably didn't substitute right." >> return (-2)
+        (True, True) -> fail "Both sides have human dependency...can't use this approach!"
+        (False, False) -> fail "Neither side has human dependency! Check implementation of hasHumanDep."
         (True, False) -> do
           v2 <- solveValue calculationMap s2
           case op of
@@ -156,7 +128,7 @@ getHumanValForExpectedOutcome calculationMap expected nodeName = do
             Minus -> getHumanValForExpectedOutcome calculationMap (expected + v2) s1
             Times -> getHumanValForExpectedOutcome calculationMap (expected `quot` v2) s1
             Divided -> getHumanValForExpectedOutcome calculationMap (expected * v2) s1
-            Equals -> logErrorN "Equals is reserved for root." >> return (-6)
+            Equals -> getHumanValForExpectedOutcome calculationMap v2 s1
         (False, True) -> do
           v1 <- solveValue calculationMap s1
           case op of
@@ -164,8 +136,7 @@ getHumanValForExpectedOutcome calculationMap expected nodeName = do
             Minus -> getHumanValForExpectedOutcome calculationMap (v1 - expected) s2
             Times -> getHumanValForExpectedOutcome calculationMap (expected `quot` v1) s2
             Divided -> getHumanValForExpectedOutcome calculationMap (expected * v1) s2
-            Equals -> logErrorN "Equals is reserved for root." >> return (-7)
-
+            Equals -> getHumanValForExpectedOutcome calculationMap v1 s2
 
 hasHumanDep :: (MonadLogger m) => CalculationMap -> String -> m Bool
 hasHumanDep calculationMap nodeName = do
@@ -177,33 +148,6 @@ hasHumanDep calculationMap nodeName = do
       human1 <- hasHumanDep calculationMap s1
       human2 <- hasHumanDep calculationMap s2
       return $ human1 || human2
-
--------------------- SOLUTION PATTERNS --------------------
-
--- solveFold :: (MonadLogger m) => [LineType] -> m EasySolutionType
--- solveFold = foldM foldLine initialFoldV
-
--- type FoldType = ()
-
--- initialFoldV :: FoldType
--- initialFoldV = undefined
-
--- foldLine :: (MonadLogger m) => FoldType -> LineType -> m FoldType
--- foldLine = undefined
-
--- type StateType = ()
-
--- initialStateV :: StateType
--- initialStateV = ()
-
--- solveStateN :: (MonadLogger m) => Int -> StateType -> m StateType
--- solveStateN 0 st = return st
--- solveStateN n st = do
---   st' <- evolveState st
---   solveStateN (n - 1) st'
-
--- evolveState :: (MonadLogger m) => StateType -> m StateType
--- evolveState st = undefined
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
