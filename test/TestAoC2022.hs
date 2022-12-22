@@ -24,7 +24,7 @@ import qualified Day18 as D18
 import qualified Day19 as D19
 import qualified Day20 as D20
 import qualified Day21 as D21
--- import qualified Day22 as D22
+import qualified Day22 as D22
 -- import qualified Day23 as D23
 -- import qualified Day24 as D24
 -- import qualified Day25 as D25
@@ -111,14 +111,14 @@ main = do
   -- day202 <- D20.easyLarge
   -- day203 <- D20.hardSmall
   -- day204 <- D20.hardLarge
-  day211 <- D21.easySmall
-  day212 <- D21.easyLarge
-  day213 <- D21.hardSmall
-  day214 <- D21.hardLarge
---   day221 <- D22.easySmall
---   day222 <- D22.easyLarge
---   day223 <- D22.hardSmall
---   day224 <- D22.hardLarge
+  -- day211 <- D21.easySmall
+  -- day212 <- D21.easyLarge
+  -- day213 <- D21.hardSmall
+  -- day214 <- D21.hardLarge
+  day221 <- D22.easySmall
+  day222 <- D22.easyLarge
+  day223 <- D22.hardSmall
+  day224 <- D22.hardLarge
 --   day231 <- D23.easySmall
 --   day232 <- D23.easyLarge
 --   day233 <- D23.hardSmall
@@ -212,14 +212,14 @@ main = do
     -- , testCase "Day 20-2" $ day202 @?= Just 11123
     -- , testCase "Day 20-3" $ day203 @?= 1623178306
     -- , testCase "Day 20-4" $ day204 @?= 4248669215955
-    , testCase "Day 21-1" $ day211 @?= Just 152
-    , testCase "Day 21-2" $ day212 @?= Just 169525884255464
-    , testCase "Day 21-3" $ day213 @?= Just 301
-    , testCase "Day 21-4" $ day214 @?= Just 3247317268284
-    -- , testCase "Day 22-1" $ day221 @?= Just 0
-    -- , testCase "Day 22-2" $ day222 @?= Just 0
-    -- , testCase "Day 22-3" $ day223 @?= Just 0
-    -- , testCase "Day 22-4" $ day224 @?= Just 0
+    -- , testCase "Day 21-1" $ day211 @?= Just 152
+    -- , testCase "Day 21-2" $ day212 @?= Just 169525884255464
+    -- , testCase "Day 21-3" $ day213 @?= Just 301
+    -- , testCase "Day 21-4" $ day214 @?= Just 3247317268284
+    , testCase "Day 22-1" $ day221 @?= Just 6032
+    , testCase "Day 22-2" $ day222 @?= Just 66292
+    , testCase "Day 22-3" $ day223 @?= Just 5031
+    , testCase "Day 22-4" $ day224 @?= Just 127012
     -- , testCase "Day 23-1" $ day231 @?= Just 0
     -- , testCase "Day 23-2" $ day232 @?= Just 0
     -- , testCase "Day 23-3" $ day233 @?= Just 0

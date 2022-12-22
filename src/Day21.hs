@@ -57,18 +57,22 @@ parseLine = do
   return (name, calc)
   where
     parseFinalValue = FinalValue . fromIntegral <$> parsePositiveNumber
-    parseOp =
-      (char '+' >> return Plus) <|>
-      (char '-' >> return Minus) <|>
-      (char '*' >> return Times) <|>
-      (char '/' >> return Divided)
-    parseOpNode = do
-      s1 <- some letterChar
-      char ' '
-      op <- parseOp
-      char ' '
-      s2 <- some letterChar
-      return $ Operation op s1 s2
+
+parseOp :: (MonadLogger m) => ParsecT Void Text m Op
+parseOp =
+  (char '+' >> return Plus) <|>
+  (char '-' >> return Minus) <|>
+  (char '*' >> return Times) <|>
+  (char '/' >> return Divided)
+
+parseOpNode :: (MonadLogger m) => ParsecT Void Text m Calculation
+parseOpNode = do
+  s1 <- some letterChar
+  char ' '
+  op <- parseOp
+  char ' '
+  s2 <- some letterChar
+  return $ Operation op s1 s2
 
 -------------------- SOLVING EASY --------------------
 type EasySolutionType = Int64
@@ -78,8 +82,8 @@ processInputEasy calculationMap = solveValue calculationMap "root"
 
 solveValue :: (MonadLogger m, MonadFail m) => CalculationMap -> String -> m Int64
 solveValue calculationMap name = case calculationMap HM.! name of
-  HumanVal -> fail "Can't solve human value! Check with hasHumanVal first."
   (FinalValue x) -> return x
+  HumanVal -> fail "Can't solve human value! Check with hasHumanVal first."
   (Operation op s1 s2) -> do
     x1 <- solveValue calculationMap s1
     x2 <- solveValue calculationMap s2
@@ -88,7 +92,7 @@ solveValue calculationMap name = case calculationMap HM.! name of
       Minus -> return $ x1 - x2
       Times -> return $ x1 * x2
       Divided -> return $ x1 `quot` x2
-      Equals -> fail "Invalid use of equals...can only apply to 'root' on Part 2."
+      Equals -> if x1 == x2 then return 1 else return 0
 
 -------------------- SOLVING HARD --------------------
 type HardSolutionType = EasySolutionType
@@ -111,43 +115,40 @@ updateCalculationsHard calculationMap = do
     Just (Operation _ s1 s2) -> return $ HM.insert "root" (Operation Equals s1 s2) map'
 
 getHumanValForExpectedOutcome :: (MonadLogger m, MonadFail m) => CalculationMap -> Int64 -> String -> m Int64
-getHumanValForExpectedOutcome calculationMap expected nodeName = do
-  case calculationMap HM.! nodeName of
-    HumanVal -> return expected
-    (FinalValue _) -> fail "This node doesn't actually depend on human value! Check implementation of hasHumanDep"
-    (Operation op s1 s2) -> do
-      human1 <- hasHumanDep calculationMap s1
-      human2 <- hasHumanDep calculationMap s2
-      case (human1, human2) of
-        (True, True) -> fail "Both sides have human dependency...can't use this approach!"
-        (False, False) -> fail "Neither side has human dependency! Check implementation of hasHumanDep."
-        (True, False) -> do
-          v2 <- solveValue calculationMap s2
-          case op of
-            Plus -> getHumanValForExpectedOutcome calculationMap (expected - v2) s1
-            Minus -> getHumanValForExpectedOutcome calculationMap (expected + v2) s1
-            Times -> getHumanValForExpectedOutcome calculationMap (expected `quot` v2) s1
-            Divided -> getHumanValForExpectedOutcome calculationMap (expected * v2) s1
-            Equals -> getHumanValForExpectedOutcome calculationMap v2 s1
-        (False, True) -> do
-          v1 <- solveValue calculationMap s1
-          case op of
-            Plus -> getHumanValForExpectedOutcome calculationMap (expected - v1) s2
-            Minus -> getHumanValForExpectedOutcome calculationMap (v1 - expected) s2
-            Times -> getHumanValForExpectedOutcome calculationMap (expected `quot` v1) s2
-            Divided -> getHumanValForExpectedOutcome calculationMap (expected * v1) s2
-            Equals -> getHumanValForExpectedOutcome calculationMap v1 s2
+getHumanValForExpectedOutcome calculationMap expected nodeName = case calculationMap HM.! nodeName of
+  HumanVal -> return expected
+  (FinalValue _) -> fail "This node doesn't actually depend on human value! Check implementation of hasHumanDep."
+  (Operation op s1 s2) -> do
+    human1 <- hasHumanDep calculationMap s1
+    human2 <- hasHumanDep calculationMap s2
+    case (human1, human2) of
+      (True, True) -> fail "Both sides have human dependency...can't use this approach!"
+      (False, False) -> fail "Neither side has human dependency! Check implementation of hasHumanDep."
+      (True, False) -> do
+        v2 <- solveValue calculationMap s2
+        case op of
+          Plus -> getHumanValForExpectedOutcome calculationMap (expected - v2) s1
+          Minus -> getHumanValForExpectedOutcome calculationMap (expected + v2) s1
+          Times -> getHumanValForExpectedOutcome calculationMap (expected `quot` v2) s1
+          Divided -> getHumanValForExpectedOutcome calculationMap (expected * v2) s1
+          Equals -> getHumanValForExpectedOutcome calculationMap v2 s1
+      (False, True) -> do
+        v1 <- solveValue calculationMap s1
+        case op of
+          Plus -> getHumanValForExpectedOutcome calculationMap (expected - v1) s2
+          Minus -> getHumanValForExpectedOutcome calculationMap (v1 - expected) s2
+          Times -> getHumanValForExpectedOutcome calculationMap (expected `quot` v1) s2
+          Divided -> getHumanValForExpectedOutcome calculationMap (expected * v1) s2
+          Equals -> getHumanValForExpectedOutcome calculationMap v1 s2
 
 hasHumanDep :: (MonadLogger m) => CalculationMap -> String -> m Bool
-hasHumanDep calculationMap nodeName = do
-  let node = calculationMap HM.! nodeName
-  case node of
-    HumanVal -> return True
-    (FinalValue _) -> return False
-    (Operation _ s1 s2) -> do
-      human1 <- hasHumanDep calculationMap s1
-      human2 <- hasHumanDep calculationMap s2
-      return $ human1 || human2
+hasHumanDep calculationMap nodeName = case calculationMap HM.! nodeName of
+  HumanVal -> return True
+  (FinalValue _) -> return False
+  (Operation _ s1 s2) -> do
+    human1 <- hasHumanDep calculationMap s1
+    human2 <- hasHumanDep calculationMap s2
+    return $ human1 || human2
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
