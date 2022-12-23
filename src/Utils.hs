@@ -146,6 +146,9 @@ parse2DDigits = sepEndBy1 parseDigitLine eol
 parse2DDigitHashMap :: (Monad m) => ParsecT Void Text m (HashMap Coord2 Int)
 parse2DDigitHashMap = hashMapFromNestedLists <$> parse2DDigits
 
+parse2DHashMap :: (Monad m) => ParsecT Void Text m [a] -> ParsecT Void Text m (HashMap Coord2 a)
+parse2DHashMap parser = hashMapFromNestedLists <$> sepEndBy1 parser eol
+
 -- Solution Patterns
 countWhere :: (a -> Bool) -> [a] -> Int
 countWhere predicate list = length $ filter predicate list

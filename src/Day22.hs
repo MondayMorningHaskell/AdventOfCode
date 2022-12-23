@@ -139,7 +139,7 @@ processInputEasy (info@(maze, _, _), directions) = runMoves info (start, FaceUp)
 -- Recursively run all the moves.
 -- With each call, process one element of 'directions' - turn once and move the set number of times.
 runMoves :: (MonadLogger m) => MazeInfo -> (Coord2, Direction) -> [(Turn, Int)] -> m (Coord2, Direction)
-runMoves _ final [] = return final {- Base Case - No more turns moves. -}
+runMoves _ final [] = return final {- Base Case - No more turns/moves. -}
 runMoves info (currentLoc, currentDir) ((nextTurn, distance) : rest) = do
   finalCoord <- runMovesTail distance currentLoc
   runMoves info (finalCoord, newDir) rest {- Recursive -}
