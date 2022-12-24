@@ -116,18 +116,18 @@ evolveState (elfSet, directions, _) = do
     updateSetForMove :: HM.HashMap Coord2 Coord2 -> HS.HashSet Coord2 -> Coord2 -> HS.HashSet Coord2
     updateSetForMove moveLookup prevSet newLoc = HS.insert newLoc (HS.delete (moveLookup HM.! newLoc) prevSet)
 
-    {-1d-}
-    tryNorth :: Bool -> Coord2 -> Maybe Coord2
-    tryNorth b (row, col) = if b then Just (row - 1, col) else Nothing
+{-1d-}
+tryNorth :: Bool -> Coord2 -> Maybe Coord2
+tryNorth b (row, col) = if b then Just (row - 1, col) else Nothing
 
-    trySouth :: Bool -> Coord2 -> Maybe Coord2
-    trySouth b (row, col) = if b then Just (row + 1, col) else Nothing
+trySouth :: Bool -> Coord2 -> Maybe Coord2
+trySouth b (row, col) = if b then Just (row + 1, col) else Nothing
 
-    tryEast :: Bool -> Coord2 -> Maybe Coord2
-    tryEast b (row, col) = if b then Just (row, col + 1) else Nothing
+tryEast :: Bool -> Coord2 -> Maybe Coord2
+tryEast b (row, col) = if b then Just (row, col + 1) else Nothing
 
-    tryWest :: Bool -> Coord2 -> Maybe Coord2
-    tryWest b (row, col) = if b then Just (row, col - 1) else Nothing
+tryWest :: Bool -> Coord2 -> Maybe Coord2
+tryWest b (row, col) = if b then Just (row, col - 1) else Nothing
 
 
 findEasySolution :: (MonadLogger m, MonadIO m) => EasySolutionType -> m (Maybe Int)

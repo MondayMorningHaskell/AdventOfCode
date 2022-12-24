@@ -205,6 +205,20 @@ getNeighbors grid (row, col) = catMaybes [maybeUp, maybeDown, maybeLeft, maybeRi
     maybeLeft = if col > 0 then Just (row, col - 1) else Nothing
     maybeRight = if col < maxCol then Just (row, col + 1) else Nothing
 
+getNeighbors4 :: HashMap Coord2 a -> Coord2 -> [Coord2]
+getNeighbors4 grid = getNeighbors4Flex (0, 0) (maxRow, maxCol)
+  where
+    (maxRow, maxCol) = maximum $ HM.keys grid
+
+getNeighbors4Flex :: Coord2 -> Coord2 -> Coord2 -> [Coord2]
+getNeighbors4Flex (minRow, minCol) (maxRow, maxCol) (row, col) = catMaybes
+  [maybeUp, maybeLeft, maybeRight, maybeDown]
+  where
+    maybeUp = if row > minRow then Just (row - 1, col) else Nothing
+    maybeRight = if col < maxCol then Just (row, col + 1) else Nothing
+    maybeDown = if row < maxRow then Just (row + 1, col) else Nothing
+    maybeLeft = if col > minCol then Just (row, col - 1) else Nothing
+
 getNeighbors4Unbounded :: Coord2 -> [Coord2]
 getNeighbors4Unbounded (x, y) =
   [ (x + 1, y)

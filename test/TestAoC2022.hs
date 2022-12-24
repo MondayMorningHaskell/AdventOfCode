@@ -26,7 +26,7 @@ import qualified Day20 as D20
 import qualified Day21 as D21
 import qualified Day22 as D22
 import qualified Day23 as D23
--- import qualified Day24 as D24
+import qualified Day24 as D24
 -- import qualified Day25 as D25
 
 main :: IO ()
@@ -119,12 +119,12 @@ main = do
   -- day222 <- D22.easyLarge
   -- day223 <- D22.hardSmall
   -- day224 <- D22.hardLarge
-  day231 <- D23.easySmall
-  day232 <- D23.easyLarge
-  day233 <- D23.hardSmall
-  day234 <- D23.hardLarge
---   day241 <- D24.easySmall
---   day242 <- D24.easyLarge
+  -- day231 <- D23.easySmall
+  -- day232 <- D23.easyLarge
+  -- day233 <- D23.hardSmall
+  -- day234 <- D23.hardLarge
+  day241 <- D24.easySmall
+  -- day242 <- D24.easyLarge
 --   day243 <- D24.hardSmall
 --   day244 <- D24.hardLarge
 --   day251 <- D25.easySmall
@@ -220,11 +220,11 @@ main = do
     -- , testCase "Day 22-2" $ day222 @?= Just 66292
     -- , testCase "Day 22-3" $ day223 @?= Just 5031
     -- , testCase "Day 22-4" $ day224 @?= Just 127012
-    , testCase "Day 23-1" $ day231 @?= Just 110
-    , testCase "Day 23-2" $ day232 @?= Just 4114
-    , testCase "Day 23-3" $ day233 @?= Just 20
-    , testCase "Day 23-4" $ day234 @?= Just 970
-    -- , testCase "Day 24-1" $ day241 @?= Just 0
+    -- , testCase "Day 23-1" $ day231 @?= Just 110
+    -- , testCase "Day 23-2" $ day232 @?= Just 4114
+    -- , testCase "Day 23-3" $ day233 @?= Just 20
+    -- , testCase "Day 23-4" $ day234 @?= Just 970
+    , testCase "Day 24-1" $ day241 @?= Just 18
     -- , testCase "Day 24-2" $ day242 @?= Just 0
     -- , testCase "Day 24-3" $ day243 @?= Just 0
     -- , testCase "Day 24-4" $ day244 @?= Just 0
