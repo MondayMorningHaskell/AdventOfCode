@@ -14,9 +14,10 @@ import Data.List (sortOn)
 import qualified Data.Array as A
 import qualified Data.HashSet as HS
 import Algorithm.Search (bfsM, aStarM)
-import Control.Monad (filterM)
+import Control.Monad (filterM, when)
 import Data.Bits
 import Data.List.Extra (groupOn)
+import Control.Monad.Cont (lift)
 
 dayNum :: Int
 dayNum = 24
@@ -30,11 +31,10 @@ solveEasy fp = runStdoutLoggingT $ do
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = (Coord2, Coord2, BlizzardMap, HM.HashMap Coord2 Cell)
+type InputType = (Coord2, Coord2, BlizzardMap', HM.HashMap Coord2 Cell)
 
 data BlizzardMap = BlizzardMap
   { upBlizzards :: HS.HashSet Coord2
@@ -59,7 +59,8 @@ parseInput = do
   let emptyCoords = sortOn fst (fst <$> emptySpaces)
   let start = head emptyCoords
   let end = last emptyCoords
-  return (start, end, mkBlizzardMap cells, cells)
+  bm <- lift $ mkBlizzardMap' cells
+  return (start, end, bm, cells)
 
 parseCell :: ParsecT Void Text m Cell
 parseCell =
@@ -79,30 +80,31 @@ mkBlizzardMap cells = BlizzardMap upCells downCells rightCells leftCells
     rightCells = HS.fromList (fst <$> filter ((== BlizzRight) . snd) assocs)
     leftCells = HS.fromList (fst <$> filter ((== BlizzLeft) . snd) assocs)
 
-mkBlizzardMap' :: HM.HashMap Coord2 Cell -> BlizzardMap'
-mkBlizzardMap' cells = BlizzardMap' upArray downArray rightArray leftArray
+mkBlizzardMap' :: (MonadLogger m) => HM.HashMap Coord2 Cell -> m BlizzardMap'
+mkBlizzardMap' cells = do
+  return $ BlizzardMap' upArray downArray rightArray leftArray
   where
     assocs = HM.toList cells
 
     upCells = fst <$> filter ((== BlizzUp) . snd) assocs
-    initialUpMap = HM.fromList [(c,0 :: Integer) | c <- [1..maxCol - 1]]
-    upCellMap = foldl (\prevMap (r, c) -> HM.insert c (setBit (prevMap HM.! c) (c - 1)) prevMap) initialUpMap upCells
+    initialUpMap = HM.fromList [(c,0 :: Integer) | c <- [1..(maxCol - 1)]]
+    upCellMap = foldl (\prevMap (r, c) -> HM.insert c (setBit (prevMap HM.! c) (r - 1)) prevMap) initialUpMap upCells
     upArray = A.array (1, maxCol - 1) $ HM.toList upCellMap
 
     downCells = fst <$> filter ((== BlizzDown) . snd) assocs
-    initialDownMap = HM.fromList [(c,0 :: Integer) | c <- [1..maxCol - 1]]
-    downCellMap = foldl (\prevMap (r, c) -> HM.insert c (setBit (prevMap HM.! c) (c - 1)) prevMap) initialDownMap downCells
+    initialDownMap = HM.fromList [(c,0 :: Integer) | c <- [1..(maxCol - 1)]]
+    downCellMap = foldl (\prevMap (r, c) -> HM.insert c (setBit (prevMap HM.! c) (r - 1)) prevMap) initialDownMap downCells
     downArray = A.array (1, maxCol - 1) $ HM.toList downCellMap
 
     rightCells = fst <$> filter ((== BlizzRight) . snd) assocs
-    initialRightMap = HM.fromList [(r, 0 :: Integer) | r <- [1..maxRow - 1]]
-    rightCellMap = foldl (\prevMap (r, c) -> HM.insert r (setBit (prevMap HM.! r) (r - 1)) prevMap) initialRightMap rightCells
-    rightArray = A.array (1, maxCol - 1) $ HM.toList rightCellMap
+    initialRightMap = HM.fromList [(r, 0 :: Integer) | r <- [1..(maxRow - 1)]]
+    rightCellMap = foldl (\prevMap (r, c) -> HM.insert r (setBit (prevMap HM.! r) (c - 1)) prevMap) initialRightMap rightCells
+    rightArray = A.array (1, maxRow - 1) $ HM.toList rightCellMap
 
     leftCells = fst <$> filter ((== BlizzLeft) . snd) assocs
-    initialLeftMap = HM.fromList [(r, 0 :: Integer) | r <- [1..maxRow - 1]]
-    leftCellMap = foldl (\prevMap (r, c) -> HM.insert r (setBit (prevMap HM.! r) (r - 1)) prevMap) initialLeftMap leftCells
-    leftArray = A.array (1, maxCol - 1) $ HM.toList leftCellMap
+    initialLeftMap = HM.fromList [(r, 0 :: Integer) | r <- [1..(maxRow - 1)]]
+    leftCellMap = foldl (\prevMap (r, c) -> HM.insert r (setBit (prevMap HM.! r) (c - 1)) prevMap) initialLeftMap leftCells
+    leftArray = A.array (1, maxRow - 1) $ HM.toList leftCellMap
 
     (maxRow, maxCol) = maximum $ HM.keys cells
 
@@ -111,11 +113,11 @@ type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
 processInputEasy (start, end, blizzardMap, cells) = do
-  result <- bfsM (neighbors cells minCoord maxCoord) (\st -> return (currentLocation st == end)) initialState
-  -- result <- aStarM (neighbors cells minCoord maxCoord) (\_ _ -> return 1) (estimateCost end) (\st -> return (currentLocation st == end)) initialState
+  -- result <- bfsM (neighbors cells minCoord maxCoord) (\st -> return (currentLocation st == end)) initialState
+  result <- aStarM (neighbors cells minCoord maxCoord) (\_ _ -> return 1) (estimateCost end) (\st -> return (currentLocation st == end)) initialState
   case result of
     Nothing -> return maxBound
-    Just path -> return (length path)
+    Just (_, path) -> return $ length path
   where
     initialState = SearchState blizzardMap 0 start
     minCoord = minimum $ HM.keys cells
@@ -125,16 +127,16 @@ findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
 
 data SearchState = SearchState
-  { blizzMap :: BlizzardMap
+  { blizzMap :: BlizzardMap'
   , time :: Int
   , currentLocation :: Coord2
   } deriving (Show, Eq, Ord)
 
 neighbors :: (MonadLogger m) => HM.HashMap Coord2 Cell -> Coord2 -> Coord2 -> SearchState -> m [SearchState]
 neighbors cells minCoord maxCoord (SearchState blizzardMap t loc) = do
-  logErrorN (pack . show $ t)
-  nextBlizzards <- updateBlizzardMap minCoord maxCoord blizzardMap
-  finalLocs <- filterM (hasBlizzard nextBlizzards) (loc : notWalls)
+  nextBlizzards <- updateBlizzardMap' minCoord maxCoord blizzardMap
+  logErrorN ("Time " <> (pack . show $ t))
+  finalLocs <- filterM (hasNoBlizzard' (fst maxCoord) nextBlizzards) (loc : notWalls)
   return (SearchState nextBlizzards (t + 1) <$> finalLocs)
   where
     startingLocs = getNeighbors4 cells loc
@@ -176,11 +178,12 @@ data BlizzardMap' = BlizzardMap'
   , downBlizzards' :: A.Array Int Integer
   , rightBlizzards' :: A.Array Int Integer
   , leftBlizzards' :: A.Array Int Integer
-  }
+  } deriving (Show, Eq, Ord)
 
-hasBlizzard' :: (MonadLogger m) => BlizzardMap' -> Coord2 -> m Bool
-hasBlizzard' (BlizzardMap' up down right left) (row, col) = return $ not $ or
-  [isUp, isDown, isRight, isLeft]
+hasNoBlizzard' :: (MonadLogger m) => Int -> BlizzardMap' -> Coord2 -> m Bool
+hasNoBlizzard' maxRow (BlizzardMap' up down right left) (row, col) = if row == 0 || row == maxRow then return True
+  else return $ not $ or
+    [isUp, isDown, isRight, isLeft]
   where
     isUp = testBit (up A.! col) (row - 1)
     isDown = testBit (down A.! col) (row - 1)
@@ -214,7 +217,24 @@ shiftIRight maxBit i = if minIs1
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = return 0
+processInputHard (start, end, blizzardMap, cells) = do
+  result <- aStarM (neighbors cells minCoord maxCoord) (\_ _ -> return 1) (estimateCost end) (\st -> return (currentLocation st == end)) initialState
+  case result of
+    Nothing -> return maxBound
+    Just (_, path) -> do
+      result2 <- aStarM (neighbors cells minCoord maxCoord) (\_ _ -> return 1) (estimateCost start) (\st -> return (currentLocation st == start)) (last path)
+      case result2 of
+        Nothing -> logErrorN "Couldn't make it back!" >> return maxBound
+        Just (_, path2) -> do
+          result3 <- aStarM (neighbors cells minCoord maxCoord) (\_ _ -> return 1) (estimateCost end) (\st -> return (currentLocation st == end)) (last path2)
+          case result3 of
+            Nothing -> logErrorN "Couldn't make the final leg!" >> return maxBound
+            Just (_, path3) -> do
+              return $ length path + length path2 + length path3
+  where
+    initialState = SearchState blizzardMap 0 start
+    minCoord = minimum $ HM.keys cells
+    maxCoord = maximum $ HM.keys cells
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing

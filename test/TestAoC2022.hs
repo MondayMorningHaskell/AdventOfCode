@@ -123,10 +123,10 @@ main = do
   -- day232 <- D23.easyLarge
   -- day233 <- D23.hardSmall
   -- day234 <- D23.hardLarge
-  day241 <- D24.easySmall
+  -- day241 <- D24.easySmall
   -- day242 <- D24.easyLarge
---   day243 <- D24.hardSmall
---   day244 <- D24.hardLarge
+  -- day243 <- D24.hardSmall
+  -- day244 <- D24.hardLarge
 --   day251 <- D25.easySmall
 --   day252 <- D25.easyLarge
 --   day253 <- D25.hardSmall
@@ -224,10 +224,10 @@ main = do
     -- , testCase "Day 23-2" $ day232 @?= Just 4114
     -- , testCase "Day 23-3" $ day233 @?= Just 20
     -- , testCase "Day 23-4" $ day234 @?= Just 970
-    , testCase "Day 24-1" $ day241 @?= Just 18
-    -- , testCase "Day 24-2" $ day242 @?= Just 0
-    -- , testCase "Day 24-3" $ day243 @?= Just 0
-    -- , testCase "Day 24-4" $ day244 @?= Just 0
+    -- , testCase "Day 24-1" $ day241 @?= Just 18
+    -- , testCase "Day 24-2" $ day242 @?= Just 260
+    -- , testCase "Day 24-3" $ day243 @?= Just 54
+    -- , testCase "Day 24-4" $ day244 @?= Just 747
     -- , testCase "Day 25-1" $ day251 @?= Just 0
     -- , testCase "Day 25-2" $ day252 @?= Just 0
     -- , testCase "Day 25-3" $ day253 @?= Just 0
