@@ -27,7 +27,7 @@ import qualified Day21 as D21
 import qualified Day22 as D22
 import qualified Day23 as D23
 import qualified Day24 as D24
--- import qualified Day25 as D25
+import qualified Day25 as D25
 
 main :: IO ()
 main = do
@@ -127,8 +127,8 @@ main = do
   -- day242 <- D24.easyLarge
   -- day243 <- D24.hardSmall
   -- day244 <- D24.hardLarge
---   day251 <- D25.easySmall
---   day252 <- D25.easyLarge
+  day251 <- D25.easySmall
+  day252 <- D25.easyLarge
 --   day253 <- D25.hardSmall
 --   day254 <- D25.hardLarge
   defaultMain $ testGroup "Advent of Code Tests"
@@ -228,8 +228,8 @@ main = do
     -- , testCase "Day 24-2" $ day242 @?= Just 260
     -- , testCase "Day 24-3" $ day243 @?= Just 54
     -- , testCase "Day 24-4" $ day244 @?= Just 747
-    -- , testCase "Day 25-1" $ day251 @?= Just 0
-    -- , testCase "Day 25-2" $ day252 @?= Just 0
+    , testCase "Day 25-1" $ day251 @?= "2=-1=0"
+    , testCase "Day 25-2" $ day252 @?= "2=0=02-0----2-=02-10"
     -- , testCase "Day 25-3" $ day253 @?= Just 0
     -- , testCase "Day 25-4" $ day254 @?= Just 0
     ]

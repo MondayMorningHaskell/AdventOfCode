@@ -49,6 +49,7 @@ library
       Day22
       Day23
       Day24
+      Day25
   other-modules:
       Utils
   hs-source-dirs:
