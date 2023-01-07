@@ -57,10 +57,14 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , bytestring
+    , conduit
     , containers
+    , directory
     , extra
     , hashable
     , heap
+    , http-conduit
     , megaparsec
     , monad-logger
     , mtl
@@ -83,9 +87,13 @@ test-suite aoc-utils-test
       AdventOfCode
     , array
     , base >=4.7 && <5
+    , bytestring
+    , conduit
     , containers
+    , directory
     , hashable
     , heap
+    , http-conduit
     , megaparsec
     , monad-logger
     , mtl
@@ -107,9 +115,13 @@ test-suite test-2022
       AdventOfCode
     , array
     , base >=4.7 && <5
+    , bytestring
+    , conduit
     , containers
+    , directory
     , hashable
     , heap
+    , http-conduit
     , megaparsec
     , mtl
     , split
