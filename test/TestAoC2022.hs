@@ -95,14 +95,14 @@ main = do
   -- day162 <- D16.easyLarge
   -- day163 <- D16.hardSmall
   -- day164 <- D16.hardLarge
-  -- day171 <- D17.easySmall
-  -- day172 <- D17.easyLarge
-  -- day173 <- D17.hardSmall
-  -- day174 <- D17.hardLarge
-  day181 <- D18.easySmall
-  day182 <- D18.easyLarge
-  day183 <- D18.hardSmall
-  day184 <- D18.hardLarge
+  day171 <- D17.easySmall
+  day172 <- D17.easyLarge
+  day173 <- D17.hardSmall
+  day174 <- D17.hardLarge
+  -- day181 <- D18.easySmall
+  -- day182 <- D18.easyLarge
+  -- day183 <- D18.hardSmall
+  -- day184 <- D18.hardLarge
   -- day191 <- D19.easySmall
   -- day192 <- D19.easyLarge
   -- day193 <- D19.hardSmall
@@ -184,10 +184,10 @@ main = do
     -- , testCase "Day 13-2" $ day132 @?= Just 5625
     -- , testCase "Day 13-3" $ day133 @?= Just 140
     -- , testCase "Day 13-4" $ day134 @?= Just 23111
-    , testCase "Day 14-1" $ day141 @?= Just 24
-    , testCase "Day 14-2" $ day142 @?= Just 858
-    , testCase "Day 14-3" $ day143 @?= Just 93
-    , testCase "Day 14-4" $ day144 @?= Just 26845
+    -- , testCase "Day 14-1" $ day141 @?= Just 24
+    -- , testCase "Day 14-2" $ day142 @?= Just 858
+    -- , testCase "Day 14-3" $ day143 @?= Just 93
+    -- , testCase "Day 14-4" $ day144 @?= Just 26845
     -- , testCase "Day 15-1" $ day151 @?= Just 26
     -- , testCase "Day 15-2" $ day152 @?= Just 5607466
     -- , testCase "Day 15-3" $ day153 @?= Just 56000011
@@ -196,14 +196,14 @@ main = do
     -- , testCase "Day 16-2" $ day162 @?= Just 1775
     -- , testCase "Day 16-3" $ day163 @?= Just 1707
     -- , testCase "Day 16-4" $ day164 @?= Just 2351
-    -- , testCase "Day 17-1" $ day171 @?= Just 3068
-    -- , testCase "Day 17-2" $ day172 @?= Just 3085
-    -- , testCase "Day 17-3" $ day173 @?= Just 1514285714288
-    -- , testCase "Day 17-4" $ day174 @?= Just 1999999999973
-    , testCase "Day 18-1" $ day181 @?= Just 64
-    , testCase "Day 18-2" $ day182 @?= Just 4460
-    , testCase "Day 18-3" $ day183 @?= Just 58
-    , testCase "Day 18-4" $ day184 @?= Just 2498
+    , testCase "Day 17-1" $ day171 @?= Just 3068
+    , testCase "Day 17-2" $ day172 @?= Just 3085
+    , testCase "Day 17-3" $ day173 @?= Just 1514285714288
+    , testCase "Day 17-4" $ day174 @?= Just 1535483870924 
+    -- , testCase "Day 18-1" $ day181 @?= Just 64
+    -- , testCase "Day 18-2" $ day182 @?= Just 4460
+    -- , testCase "Day 18-3" $ day183 @?= Just 58
+    -- , testCase "Day 18-4" $ day184 @?= Just 2498
     -- , testCase "Day 19-1" $ day191 @?= Just 33
     -- , testCase "Day 19-2" $ day192 @?= Just 1653
     -- , testCase "Day 19-3" $ day193 @?= Just 3472
@@ -228,8 +228,8 @@ main = do
     -- , testCase "Day 24-2" $ day242 @?= Just 260
     -- , testCase "Day 24-3" $ day243 @?= Just 54
     -- , testCase "Day 24-4" $ day244 @?= Just 747
-    , testCase "Day 25-1" $ day251 @?= "2=-1=0"
-    , testCase "Day 25-2" $ day252 @?= "2=0=02-0----2-=02-10"
+    -- , testCase "Day 25-1" $ day251 @?= "2=-1=0"
+    -- , testCase "Day 25-2" $ day252 @?= "2=0=02-0----2-=02-10"
     -- , testCase "Day 25-3" $ day253 @?= Just 0
     -- , testCase "Day 25-4" $ day254 @?= Just 0
     ]

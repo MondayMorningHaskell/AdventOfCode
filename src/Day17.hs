@@ -139,35 +139,13 @@ data TetrisState = TetrisState
 runTetris :: (MonadFail m, MonadLogger m) => StateT TetrisState m Integer
 runTetris = do
   remaining <- gets stepsRemaining
-  when (remaining `mod` 10000 == 0) $ logErrorN ("Step: " <> (pack . show $ remaining))
-  hasReset <- canReset
   if remaining <= 0
     then gets (fromIntegral . maxHeight)
-    else if hasReset
-      then do
-        steps <- gets stepsRun
-        max <- gets (fromIntegral . maxHeight)
-        logErrorN ("Has Reset at step number: " <> (pack . show $ steps) <> " with height: " <> (pack . show $ max))
-        remainder <- gets stepsRemaining
-        let (fullIterationNum, partialStepsNumber) = remainder `quotRem` steps
-        modify (\s -> s {stepsRun = 0, stepsRemaining = partialStepsNumber})
-        finalHeight <- runTetris
-        return $ finalHeight + (fullIterationNum * max)
-      else do
-        fallBlock
-        generateNextBlock
-        decrementSteps
-        runTetris
-
-canReset :: (MonadLogger m) => StateT TetrisState m Bool
-canReset = do
-  steps <- gets stepsRun
-  (sCount, _) <- gets shapesCounter
-  (dCount, _) <- gets directionsCounter
-  heights <- gets (A.elems . maxHeights)
-  let contour = map (\a -> a - maximum heights) heights
-  let allHeightsEqual = length (nub heights) == 1
-  return $ steps > 0 && sCount == 0 && dCount == 0 && allHeightsEqual
+    else do
+      fallBlock
+      generateNextBlock
+      decrementSteps
+      runTetris
 
 pushBlock :: (MonadLogger m, MonadFail m) => StateT TetrisState m ()
 pushBlock = do
@@ -290,56 +268,6 @@ settleBlock = do
       Square -> [(leftPos, lowPos + 1), (leftPos + 1, lowPos + 1)]
     
     newHeight currentMaxHeights (column, row) = if currentMaxHeights A.! column < row then Just (column, row) else Nothing
-
-garbageCollectOccupied :: MonadLogger m => StateT TetrisState m ()
-garbageCollectOccupied = do
-  minMaxHeight <- gets (minimum . A.elems . maxHeights)
-  occupied <- gets occupiedSquares
-  modify (\s -> s {occupiedSquares = HS.filter (\(_, y) -> y >= minMaxHeight) occupied})
-
-{-
-fallBlock :: (MonadLogger m) => Block -> StateType -> m StateType
-fallBlock block@(Block shape leftPos height) st@(TetrisState maxHeight _ dirs heights) = do
-  -- Blocks is an infinite list, so this is always valid.
-  logErrorN (pack . show $ shape)
-  let (dir : restDirs) = dirs
-  block' <- pushBlock dir block
-  canDrop <- canDropBlock block' heights
-  if canDrop
-    then fallBlock (block' { lowestPosition = height - 1}) (st {directions = restDirs})
-    else settleBlock block' (st {directions = restDirs})
-
-settleBlock :: (MonadLogger m) => Block -> StateType -> m StateType
-settleBlock bl@(Block shape leftPos lowPos) st@(TetrisState _ _ _ heights) = do
-  logErrorN ("Settling: " <> (pack . show $ bl))
-  let newHeights = highHeights shape leftPos lowPos
-  let newMaxHeights = map (\(i, h) -> (i, max h (heights A.! h))) newHeights
-  let finalHeights = heights A.// newMaxHeights
-  let newMax = maximum (A.elems finalHeights)
-  return $ st { height = newMax, columnHeights = finalHeights}
-
-canDropBlock :: (MonadLogger m) => Block -> A.Array Int Int -> m Bool
-canDropBlock bl@(Block shape leftPos lowPos) heights = do
-  let lowCompare = lowHeights shape leftPos lowPos
-  logErrorN ("Can Drop1? " <> (pack . show $ bl))
-  logErrorN ("Can Drop2? " <> (pack . show $ lowCompare))
-  logErrorN ("Can Drop3? " <> (pack . show $ heights))
-  return $ all (\(i, h) -> heights A.! i < h - 1) lowCompare
-
-lowHeights :: BlockType -> Int -> Int -> [(Int, Int)]
-lowHeights Minus left low = zip [left..left + 3] (replicate 4 low)
-lowHeights Plus left low = zip [left..left + 2] [low + 1, low, low + 1]
-lowHeights Ell left low = zip [left..left + 2] (replicate 3 low)
-lowHeights Long left low = [(left, low)]
-lowHeights Square left low = [(left, low), (left + 1, low)]
-
-highHeights :: BlockType -> Int -> Int -> [(Int, Int)]
-highHeights Minus left low = zip [left..left + 3] (replicate 4 low)
-highHeights Plus left low = zip [left..left + 2] [low + 1, low + 2, low + 1]
-highHeights Ell left low = zip [left..left + 2] [low, low, low + 2]
-highHeights Long left low = [(left, low + 3)]
-highHeights Square left low = [(left, low + 1), (left + 1, low + 1)]
--}
 
 -------------------- BOILERPLATE --------------------
 smallFile :: FilePath
