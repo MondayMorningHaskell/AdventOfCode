@@ -1,12 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Day2 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Control.Monad (foldM)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN)
+import Text.Megaparsec (ParsecT, sepEndBy1, some, sepEndBy1, (<|>), try, optional, sepBy1)
+import Text.Megaparsec.Char (eol, digitChar, string, letterChar, char)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 
 import Utils (parseFile)
 
@@ -14,52 +16,83 @@ dayNum :: Int
 dayNum = 2
 
 -------------------- PUTTING IT TOGETHER --------------------
-solveEasy :: FilePath -> IO (Maybe Int)
+solveEasy :: FilePath -> IO Int
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  processInputEasy input
 
-solveHard :: FilePath -> IO (Maybe Int)
+solveHard :: FilePath -> IO Int
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = [Game]
+
+-- Each 3-tuple is blue->green->red
+type Game = (Int, [(Int, Int, Int)])
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
 parseInput =
-  return ()
+  sepEndBy1 parseLine eol
 
--- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
--- parseInput =
---   sepEndyBy1 parseLine eol
-
--- type InputType = [LineType]
--- type LineType = ()
-
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+parseLine :: (MonadLogger m) => ParsecT Void Text m Game
+parseLine = do
+  string "Game "
+  gameId <- read <$> some digitChar
+  string ": "
+  pulls <- sepBy1 parseSinglePull (string "; ") 
+  return $ (gameId, pulls)
+  where
+    parseSinglePull = do
+      numColors <- sepBy1 parseNumColor (string ", ")
+      foldM f (0, 0, 0) numColors
+    
+    f (pb, pg, pr) (num, color) = case color of
+        "blue" -> return (num, pg, pr)
+        "green" -> return (pb, num, pr)
+        "red" -> return (pb, pg, num)
+        x -> fail $ "Invalid color: " <> x <> "!"
+    
+    parseNumColor = do
+      num <- read <$> some digitChar
+      char ' '
+      color <- some letterChar
+      return (num, color)
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = undefined
+processInputEasy games = do
+  return $ sum (fst <$> possibleGames)
+  where
+    possibleGames = filter isPossible games
 
-findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
-findEasySolution _ = return Nothing
+    isPossible :: Game -> Bool
+    isPossible (_, pulls) = null
+      (filter (\(b, g, r) -> b > 14 || g > 13 || r > 12)
+      pulls)
+
+findEasySolution :: (MonadLogger m) => EasySolutionType -> m Int
+findEasySolution _ = return 0
 
 -------------------- SOLVING HARD --------------------
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = undefined
+processInputHard games = return $ sum (gamePower <$> games)
+  where
+    gamePower :: Game -> Int
+    gamePower (_, pulls) =
+      let (minBlue, minGreen, minRed) = foldl g (0, 0, 0) pulls
+      in  minBlue * minGreen * minRed
+    
+    g :: (Int, Int, Int) -> (Int, Int, Int) -> (Int, Int, Int)
+    g (nb, ng, nr) (minB, minG, minR) = (max nb minB, max ng minG, max nr minR)
 
-findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
-findHardSolution _ = return Nothing
+findHardSolution :: (MonadLogger m) => HardSolutionType -> m Int
+findHardSolution _ = return 0
 
 -------------------- SOLUTION PATTERNS --------------------
 
@@ -95,14 +128,14 @@ smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
 largeFile :: FilePath
 largeFile = "inputs_2022/day_" <> show dayNum <> "_large.txt"
 
-easySmall :: IO (Maybe Int)
+easySmall :: IO Int
 easySmall = solveEasy smallFile
 
-easyLarge :: IO (Maybe Int)
+easyLarge :: IO Int
 easyLarge = solveEasy largeFile
 
-hardSmall :: IO (Maybe Int)
+hardSmall :: IO Int
 hardSmall = solveHard smallFile
 
-hardLarge :: IO (Maybe Int)
+hardLarge :: IO Int
 hardLarge = solveHard largeFile

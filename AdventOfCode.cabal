@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.4.
+-- This file has been generated from package.yaml by hpack version 0.35.0.
 --
 -- see: https://github.com/sol/hpack
 
@@ -26,6 +26,10 @@ source-repository head
 library
   exposed-modules:
       Day1
+      Day2
+      Day3
+      Day4
+      Day5
   other-modules:
       Utils
   hs-source-dirs:
@@ -47,6 +51,7 @@ library
     , text
     , transformers
     , unordered-containers
+    , vector
   default-language: Haskell2010
 
 test-suite aoc-utils-test
@@ -71,6 +76,7 @@ test-suite aoc-utils-test
     , text
     , transformers
     , unordered-containers
+    , vector
   default-language: Haskell2010
 
 test-suite test-2022
@@ -94,4 +100,5 @@ test-suite test-2022
     , text
     , transformers
     , unordered-containers
+    , vector
   default-language: Haskell2010

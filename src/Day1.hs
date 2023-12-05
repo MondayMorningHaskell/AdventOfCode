@@ -2,11 +2,13 @@
 
 module Day1 where
 
-import Control.Monad.Logger (MonadLogger, runStdoutLoggingT)
-import Text.Megaparsec (ParsecT, sepEndBy1)
-import Text.Megaparsec.Char (eol)
+import Control.Monad.Logger (MonadLogger, runStdoutLoggingT, logDebugN)
+import Text.Megaparsec (ParsecT, sepEndBy1, many)
+import Text.Megaparsec.Char (eol, alphaNumChar)
 import Data.Void (Void)
-import Data.Text (Text)
+import Data.Text (Text, pack)
+import Data.Char (ord, isDigit)
+import qualified Data.List as L
 
 import Utils (parseFile)
 
@@ -17,37 +19,38 @@ dayNum = 1
 solveEasy :: FilePath -> IO (Maybe Int)
 solveEasy fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputEasy input
-  findEasySolution result
+  Just <$> processInputEasy input
 
 solveHard :: FilePath -> IO (Maybe Int)
 solveHard fp = runStdoutLoggingT $ do
   input <- parseFile parseInput fp
-  result <- processInputHard input
-  findHardSolution result
+  Just <$> processInputHard input
 
 -------------------- PARSING --------------------
-type InputType = ()
+type InputType = [String]
 
 parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
-parseInput =
-  return ()
-
--- parseInput :: (MonadLogger m) => ParsecT Void Text m InputType
--- parseInput =
---   sepEndyBy1 parseLine eol
+parseInput = sepEndBy1 parseLine eol
 
 -- type InputType = [LineType]
--- type LineType = ()
+type LineType = String
 
--- parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
--- parseLine = return ()
+parseLine :: (MonadLogger m) => ParsecT Void Text m LineType
+parseLine = many alphaNumChar
 
 -------------------- SOLVING EASY --------------------
-type EasySolutionType = ()
+type EasySolutionType = Int
 
 processInputEasy :: (MonadLogger m) => InputType -> m EasySolutionType
-processInputEasy _ = return ()
+processInputEasy strings = do
+  results <- mapM oneLine strings
+  return $ sum results
+  where
+    f c = ord c - 48 
+    oneLine s = case filter isDigit s of
+      l@(first : _ : _) -> return $ (f first * 10) + f (last l)
+      [i] -> return $ f i * 10 + f i
+      _ -> error "Not enough numbers!"
 
 findEasySolution :: (MonadLogger m) => EasySolutionType -> m (Maybe Int)
 findEasySolution _ = return Nothing
@@ -56,7 +59,34 @@ findEasySolution _ = return Nothing
 type HardSolutionType = EasySolutionType
 
 processInputHard :: (MonadLogger m) => InputType -> m HardSolutionType
-processInputHard _ = return ()
+processInputHard strings = sum <$> mapM processString' strings
+
+numbers :: [String]
+numbers = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+
+fNumbers :: [(Int, String)]
+fNumbers = zip [1..9] numbers
+
+rNumbers :: [(Int, String)]
+rNumbers = zip [1..9] (map reverse numbers)
+
+processString' :: (MonadLogger m) => String -> m Int
+processString' input = do
+  first <- processString fNumbers input
+  final <- processString rNumbers (reverse input)
+  let res = (10 * first + final)
+  return res
+
+processString :: (MonadLogger m) => [(Int, String)] -> String -> m Int
+processString stringOptions "" = logDebugN "Reached end with nothing!" >> error "Reached end with nothing!"
+processString stringOptions str@(first : rest) = if isDigit first
+    then return $ ord first - 48
+    else f stringOptions
+    where
+      f [] = processString stringOptions rest
+      f ((n, v) : restOptions) = if v `L.isPrefixOf` str
+        then return n
+        else f restOptions
 
 findHardSolution :: (MonadLogger m) => HardSolutionType -> m (Maybe Int)
 findHardSolution _ = return Nothing
@@ -93,7 +123,7 @@ smallFile :: FilePath
 smallFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
 
 largeFile :: FilePath
-largeFile = "inputs_2022/day_" <> show dayNum <> "_small.txt"
+largeFile = "inputs_2022/day_" <> show dayNum <> "_large.txt"
 
 easySmall :: IO (Maybe Int)
 easySmall = solveEasy smallFile

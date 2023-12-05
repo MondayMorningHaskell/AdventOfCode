@@ -157,7 +157,7 @@ incKeyWithOcc prevMap key = case M.lookup key prevMap of
     Nothing -> (M.insert key 1 prevMap, 1)
     Just x -> (M.insert key (x + 1) prevMap, x + 1)
 
-occLookup :: (Ord a) => OccMap a -> a -> Word
+occLookup :: (Num i, Ord a) => OccMapI a i -> a -> i
 occLookup prevMap key = fromMaybe 0 (M.lookup key prevMap)
 
 -- Binary Numbers

@@ -4,10 +4,10 @@ import Test.Tasty ( defaultMain, testGroup, TestTree )
 import Test.Tasty.HUnit ( testCase, (@?=) )
 
 import qualified Day1 as D1
--- import qualified Day2 as D2
--- import qualified Day3 as D3
--- import qualified Day4 as D4
--- import qualified Day5 as D5
+import qualified Day2 as D2
+import qualified Day3 as D3
+import qualified Day4 as D4
+import qualified Day5 as D5
 -- import qualified Day6 as D6
 -- import qualified Day7 as D7
 -- import qualified Day8 as D8
@@ -35,22 +35,22 @@ main = do
   day12 <- D1.easyLarge
   day13 <- D1.hardSmall
   day14 <- D1.hardLarge
---   day21 <- D2.easySmall
---   day22 <- D2.easyLarge
---   day23 <- D2.hardSmall
---   day24 <- D2.hardLarge
---   day31 <- D3.easySmall
---   day32 <- D3.easyLarge
---   day33 <- D3.hardSmall
---   day34 <- D3.hardLarge
---   day41 <- D4.easySmall
---   day42 <- D4.easyLarge
---   day43 <- D4.hardSmall
---   day44 <- D4.hardLarge
---   day51 <- D5.easySmall
---   day52 <- D5.easyLarge
---   day53 <- D5.hardSmall
---   day54 <- D5.hardLarge
+  day21 <- D2.easySmall
+  day22 <- D2.easyLarge
+  day23 <- D2.hardSmall
+  day24 <- D2.hardLarge
+  day31 <- D3.easySmall
+  day32 <- D3.easyLarge
+  day33 <- D3.hardSmall
+  day34 <- D3.hardLarge
+  day41 <- D4.easySmall
+  day42 <- D4.easyLarge
+  day43 <- D4.hardSmall
+  day44 <- D4.hardLarge
+  day51 <- D5.easySmall
+  day52 <- D5.easyLarge
+  day53 <- D5.hardSmall
+  day54 <- D5.hardLarge
 --   day61 <- D6.easySmall
 --   day62 <- D6.easyLarge
 --   day63 <- D6.hardSmall
@@ -132,26 +132,26 @@ main = do
 --   day253 <- D25.hardSmall
 --   day254 <- D25.hardLarge
   defaultMain $ testGroup "Advent of Code Tests"
-    [ testCase "Day 1-1" $ day11 @?= Just 0
-    -- , testCase "Day 1-2" $ day12 @?= 1226
-    -- , testCase "Day 1-3" $ day13 @?= 5
-    -- , testCase "Day 1-4" $ day14 @?= 1252
-    -- , testCase "Day 2-1" $ day21 @?= Just 0
-    -- , testCase "Day 2-2" $ day22 @?= 1226
-    -- , testCase "Day 2-3" $ day23 @?= 5
-    -- , testCase "Day 2-4" $ day24 @?= 1252
-    -- , testCase "Day 3-1" $ day31 @?= Just 0
-    -- , testCase "Day 3-2" $ day32 @?= 1226
-    -- , testCase "Day 3-3" $ day33 @?= 5
-    -- , testCase "Day 3-4" $ day34 @?= 1252
-    -- , testCase "Day 4-1" $ day41 @?= Just 0
-    -- , testCase "Day 4-2" $ day42 @?= 1226
-    -- , testCase "Day 4-3" $ day43 @?= 5
-    -- , testCase "Day 4-4" $ day44 @?= 1252
-    -- , testCase "Day 5-1" $ day51 @?= Just 0
-    -- , testCase "Day 5-2" $ day52 @?= 1226
-    -- , testCase "Day 5-3" $ day53 @?= 5
-    -- , testCase "Day 5-4" $ day54 @?= 1252
+    [ testCase "Day 1-1" $ day11 @?= Just 362
+    , testCase "Day 1-2" $ day12 @?= Just 54877
+    , testCase "Day 1-3" $ day13 @?= Just 423
+    , testCase "Day 1-4" $ day14 @?= Just 54100
+    , testCase "Day 2-1" $ day21 @?= 8
+    , testCase "Day 2-2" $ day22 @?= 2528
+    , testCase "Day 2-3" $ day23 @?= 2286
+    , testCase "Day 2-4" $ day24 @?= 67363
+    , testCase "Day 3-1" $ day31 @?= Just 4361
+    , testCase "Day 3-2" $ day32 @?= Just 550934
+    , testCase "Day 3-3" $ day33 @?= Just 467835
+    , testCase "Day 3-4" $ day34 @?= Just 81997870
+    , testCase "Day 4-1" $ day41 @?= 13
+    , testCase "Day 4-2" $ day42 @?= 25651
+    , testCase "Day 4-3" $ day43 @?= 30
+    , testCase "Day 4-4" $ day44 @?= 19499881
+    , testCase "Day 5-1" $ day51 @?= 35
+    , testCase "Day 5-2" $ day52 @?= 173706076
+    , testCase "Day 5-3" $ day53 @?= 46
+    , testCase "Day 5-4" $ day54 @?= 11611182
     -- , testCase "Day 6-1" $ day61 @?= Just 0
     -- , testCase "Day 6-2" $ day62 @?= 1226
     -- , testCase "Day 6-3" $ day63 @?= 5
